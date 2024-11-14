@@ -122,10 +122,22 @@ def criar_zip_resultado(arquivos_encontrados, todos_arquivos):
 
 def get_download_link(buffer, filename):
     """
-    Cria um link de download para o arquivo
+    Cria um link de download para o arquivo ZIP
     """
     b64 = base64.b64encode(buffer.getvalue()).decode()
-    return f'<a href="data:application/zip;base64,{b64}" download="{filename}" class="download-button">📥 Clique aqui para baixar</a>'
+    return f'<a href="data:application/zip;base64,{b64}" download="{filename}" class="download-button">📥 Baixar todas em ZIP</a>'
+
+def get_individual_download_link(arquivo, nome_arquivo):
+    """
+    Cria um link de download para um único arquivo
+    """
+    try:
+        arquivo.seek(0)
+        b64 = base64.b64encode(arquivo.getvalue()).decode()
+        mime_type = 'application/pdf' if nome_arquivo.lower().endswith('.pdf') else 'application/xml'
+        return f'<a href="data:{mime_type};base64,{b64}" download="{nome_arquivo}" class="download-button-small">⬇️ Baixar arquivo</a>'
+    except Exception as e:
+        return f"Erro ao gerar link: {str(e)}"
 
 def processar_arquivos(arquivos_uploaded, progress_bar, status_text):
     """
@@ -184,7 +196,9 @@ def main():
             1. Aguarde o processamento dos arquivos
             2. Digite o nome do produto que deseja buscar
             3. Clique em 'Buscar'
-            4. Use o botão de download para baixar os arquivos encontrados
+            4. Use os botões de download conforme necessário:
+               - Download individual de cada nota
+               - Download em ZIP de todas as notas encontradas
             
             **Tipos de arquivo suportados:**
             - PDFs (digitais ou escaneados)
@@ -195,7 +209,6 @@ def main():
             - Para selecionar múltiplos arquivos:
               - Windows: Ctrl + clique
               - Mac: Command + clique
-            - O arquivo ZIP baixado conterá apenas as notas que contêm o produto buscado
             """)
     
     # Área única de upload
@@ -300,7 +313,7 @@ def main():
                     arquivos_encontrados = resultados['arquivo'].tolist()
                     zip_buffer = criar_zip_resultado(arquivos_encontrados, arquivos)
                     
-                    # Botão de download
+                    # Botão de download ZIP
                     st.markdown("### 📥 Download dos Resultados")
                     st.markdown(
                         get_download_link(
@@ -310,7 +323,7 @@ def main():
                         unsafe_allow_html=True
                     )
                     
-                    # Adiciona CSS para estilizar o botão de download
+                    # Adiciona CSS para estilizar os botões
                     st.markdown("""
                         <style>
                         .download-button {
@@ -325,23 +338,30 @@ def main():
                         .download-button:hover {
                             background-color: #45a049;
                         }
+                        .download-button-small {
+                            display: inline-block;
+                            padding: 0.3rem 0.7rem;
+                            background-color: #2196F3;
+                            color: white;
+                            text-decoration: none;
+                            border-radius: 4px;
+                            transition: background-color 0.3s;
+                            font-size: 0.9em;
+                        }
+                        .download-button-small:hover {
+                            background-color: #1976D2;
+                        }
                         </style>
                     """, unsafe_allow_html=True)
                     
                     # Mostra os resultados
                     for idx, row in resultados.iterrows():
                         with st.expander(f"📄 {row['arquivo']} ({row['tipo']})", expanded=True):
-                            st.write("Trechos relevantes:")
-                            texto = row['conteudo'].lower()
-                            posicao = texto.find(termo_busca.lower())
-                            inicio = max(0, posicao - 100)
-                            fim = min(len(texto), posicao + 100)
-                            contexto = "..." + texto[inicio:fim] + "..."
-                            st.markdown(f"*{contexto}*")
+                            col1, col2 = st.columns([3, 1])
                             
-            except Exception as e:
-                st.error(f"Erro durante a busca: {str(e)}")
-                st.info("Tente reprocessar os arquivos clicando em 'Reprocessar arquivos'")
-
-if __name__ == "__main__":
-    main()
+                            with col1:
+                                st.write("Trechos relevantes:")
+                                texto = row['conteudo'].lower()
+                                posicao = texto.find(termo_busca.lower())
+                                inicio = max(0, posicao - 100)
+                                fim = min(len(texto), posicao + 100)
