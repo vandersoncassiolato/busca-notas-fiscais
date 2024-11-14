@@ -19,25 +19,13 @@ st.set_page_config(
     layout="wide"
 )
 
-def reiniciar_sistema():
-    """
-    Reinicia o sistema limpando a sessão e os arquivos
-    """
-    # Limpa todos os dados da sessão
-    if st.session_state:  # Verifica se existem dados na sessão
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-    
-    # Recarrega a página de forma segura
-    st.cache_data.clear()
-    st.cache_resource.clear()
+# Inicializa variável de controle de reinicialização
+if 'reiniciar_clicado' not in st.session_state:
+    st.session_state.reiniciar_clicado = False
 
-# E no botão:
-    st.header("📁 Selecione os arquivos ou pasta")
-    
-    if st.button("🔄 Reiniciar"):
-        reiniciar_sistema()
-        st.stop()  # Para a execução após limpar
+def reiniciar_sistema():
+    st.session_state.reiniciar_clicado = True
+    st.session_state.clear()
 
 def extrair_texto_xml(conteudo):
     """
@@ -119,7 +107,6 @@ def extrair_texto_pdf(arquivo):
     except Exception as e:
         st.error(f"Erro ao processar PDF: {str(e)}")
         return ""
-
 def criar_zip_resultado(arquivos_encontrados, todos_arquivos):
     """
     Cria um arquivo ZIP com os arquivos encontrados na busca
@@ -200,11 +187,9 @@ def processar_arquivos(arquivos_uploaded, progress_bar, status_text):
         return pd.DataFrame(columns=['arquivo', 'tipo', 'conteudo'])
     
     return pd.DataFrame(index)
-
 def main():
     st.title("Hiper Center - 🔍 Busca em Notas Fiscais")
     
-    # Instruções de uso
     with st.expander("ℹ️ Como usar", expanded=False):
         st.markdown("""
             **Selecione os arquivos de uma das formas:**
@@ -231,13 +216,14 @@ def main():
               - Mac: Command + clique
             """)
     
-    # Área única de upload
     st.header("📁 Selecione os arquivos ou pasta")
     
-    # Botão Reiniciar
     if st.button("🔄 Reiniciar"):
         reiniciar_sistema()
-        st.rerun()
+    
+    if st.session_state.reiniciar_clicado:
+        st.experimental_rerun()
+        st.session_state.reiniciar_clicado = False
     
     arquivos = st.file_uploader(
         "Arraste uma pasta ou selecione os arquivos",
@@ -246,7 +232,6 @@ def main():
         help="Você pode arrastar uma pasta inteira ou selecionar arquivos individuais"
     )
     
-    # CSS para os botões (agora branco com texto preto)
     st.markdown("""
         <style>
         .download-button {
@@ -277,7 +262,6 @@ def main():
             background-color: #f8f9fa !important;
         }
         
-        /* Estilo para botões Streamlit padrão */
         .stButton > button {
             background-color: white !important;
             color: black !important;
@@ -290,127 +274,3 @@ def main():
         </style>
     """, unsafe_allow_html=True)
     
-    if arquivos:
-        # Mostra estatísticas dos arquivos selecionados
-        pdfs = sum(1 for f in arquivos if f.name.lower().endswith('.pdf'))
-        xmls = sum(1 for f in arquivos if f.name.lower().endswith('.xml'))
-        st.success(f"✅ Selecionado(s): {len(arquivos)} arquivo(s)")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.info(f"📄 {pdfs} PDFs")
-        with col2:
-            st.info(f"📑 {xmls} XMLs")
-        
-        # Lista os arquivos selecionados
-        with st.expander("📄 Arquivos selecionados", expanded=False):
-            arquivos_por_pasta = {}
-            for arquivo in arquivos:
-                pasta = os.path.dirname(arquivo.name)
-                if pasta not in arquivos_por_pasta:
-                    arquivos_por_pasta[pasta] = []
-                arquivos_por_pasta[pasta].append(arquivo.name)
-            
-            for pasta, arquivos_pasta in arquivos_por_pasta.items():
-                if pasta:
-                    st.write(f"📁 {pasta}")
-                for arquivo in sorted(arquivos_pasta):
-                    nome = os.path.basename(arquivo)
-                    tipo = 'PDF' if nome.lower().endswith('.pdf') else 'XML'
-                    st.write(f"{'   ' if pasta else ''}• {nome} ({tipo})")
-        
-        # Processamento dos arquivos
-        if 'df_index' not in st.session_state or st.button("🔄 Reprocessar arquivos"):
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            
-            with st.spinner('Processando arquivos...'):
-                st.session_state.df_index = processar_arquivos(arquivos, progress_bar, status_text)
-            
-            progress_bar.empty()
-            status_text.empty()
-            
-            st.success('✅ Processamento concluído!')
-        
-        # Interface de busca
-        st.header("🔎 Buscar Produtos")
-        col1, col2 = st.columns([3, 1])
-        
-        with col1:
-            termo_busca = st.text_input(
-                "Digite o nome do produto",
-                placeholder="Ex: Café, Açúcar, etc."
-            )
-        
-        with col2:
-            buscar = st.button("Buscar", use_container_width=True)
-        
-        # Realiza a busca
-        if termo_busca and buscar:
-            try:
-                if 'df_index' not in st.session_state:
-                    st.error("Por favor, faça o upload dos arquivos primeiro.")
-                    return
-                
-                if 'conteudo' not in st.session_state.df_index.columns:
-                    st.error("Erro na estrutura dos dados. Tente reprocessar os arquivos.")
-                    return
-                
-                st.session_state.df_index['conteudo'] = st.session_state.df_index['conteudo'].fillna('')
-                
-                mascara = st.session_state.df_index['conteudo'].str.lower().str.contains(
-                    termo_busca.lower(),
-                    regex=False,
-                    na=False
-                )
-                
-                resultados = st.session_state.df_index[mascara]
-                
-                st.header("📋 Resultados")
-                if len(resultados) == 0:
-                    st.warning(f"Nenhuma nota fiscal encontrada com o produto '{termo_busca}'")
-                else:
-                    st.success(f"Encontrado em {len(resultados)} nota(s) fiscal(is)")
-                    
-                    arquivos_encontrados = resultados['arquivo'].tolist()
-                    zip_buffer = criar_zip_resultado(arquivos_encontrados, arquivos)
-                    
-                    st.markdown("### 📥 Download dos Resultados")
-                    st.markdown(
-                        get_download_link(
-                            zip_buffer,
-                            f"notas_fiscais_{termo_busca.replace(' ', '_')}.zip"
-                        ),
-                        unsafe_allow_html=True
-                    )
-                    
-                    for idx, row in resultados.iterrows():
-                        with st.expander(f"📄 {row['arquivo']} ({row['tipo']})", expanded=True):
-                            col1, col2 = st.columns([3, 1])
-                            
-                            with col1:
-                                st.write("Trechos relevantes:")
-                                texto = row['conteudo'].lower()
-                                posicao = texto.find(termo_busca.lower())
-                                inicio = max(0, posicao - 100)
-                                fim = min(len(texto), posicao + 100)
-                                contexto = "..." + texto[inicio:fim] + "..."
-                                st.markdown(f"*{contexto}*")
-                            
-                            with col2:
-                                arquivo_original = next(
-                                    (arq for arq in arquivos if arq.name == row['arquivo']),
-                                    None
-                                )
-                                if arquivo_original:
-                                    st.markdown(
-                                        get_individual_download_link(arquivo_original, row['arquivo']),
-                                        unsafe_allow_html=True
-                                    )
-                            
-            except Exception as e:
-                st.error(f"Erro durante a busca: {str(e)}")
-                st.info("Tente reprocessar os arquivos clicando em 'Reprocessar arquivos'")
-
-if __name__ == "__main__":
-    main()
