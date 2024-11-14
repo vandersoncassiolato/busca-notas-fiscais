@@ -19,6 +19,14 @@ st.set_page_config(
     layout="wide"
 )
 
+def reiniciar_sistema():
+    """
+    Reinicia o sistema limpando a sessão e os arquivos
+    """
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.session_state.clear()
+
 def extrair_texto_xml(conteudo):
     """
     Extrai informações relevantes de arquivos XML de NFe
@@ -216,8 +224,7 @@ def main():
     
     # Botão Reiniciar
     if st.button("🔄 Reiniciar"):
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
+        reiniciar_sistema()
         st.rerun()
     
     arquivos = st.file_uploader(
