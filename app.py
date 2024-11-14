@@ -11,48 +11,46 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 import zipfile
 import base64
+import glob
 
 # Configuração da página
 st.set_page_config(
-    page_title="Busca em Notas Fiscais",
+    page_title="Hiper Center - Busca em Notas Fiscais",
     page_icon="🔍",
     layout="wide"
 )
 
-# [Manter as funções anteriores: extrair_texto_xml, extrair_texto_pdf]
+def processar_pasta_local(caminho_pasta):
+    """
+    Lista todos os arquivos PDF e XML em uma pasta
+    """
+    arquivos = []
+    try:
+        # Procura por PDFs
+        pdfs = glob.glob(os.path.join(caminho_pasta, "**/*.pdf"), recursive=True)
+        # Procura por XMLs
+        xmls = glob.glob(os.path.join(caminho_pasta, "**/*.xml"), recursive=True)
+        
+        # Processa PDFs encontrados
+        for pdf_path in pdfs:
+            with open(pdf_path, 'rb') as f:
+                arquivo = io.BytesIO(f.read())
+                arquivo.name = os.path.basename(pdf_path)
+                arquivos.append(arquivo)
+        
+        # Processa XMLs encontrados
+        for xml_path in xmls:
+            with open(xml_path, 'rb') as f:
+                arquivo = io.BytesIO(f.read())
+                arquivo.name = os.path.basename(xml_path)
+                arquivos.append(arquivo)
+                
+        return arquivos
+    except Exception as e:
+        st.error(f"Erro ao processar pasta: {str(e)}")
+        return []
 
-def criar_zip_resultado(arquivos_encontrados, todos_arquivos):
-    """
-    Cria um arquivo ZIP com os arquivos encontrados na busca
-    """
-    # Cria um buffer em memória para o ZIP
-    zip_buffer = io.BytesIO()
-    
-    # Cria o arquivo ZIP
-    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-        # Para cada arquivo encontrado
-        for arquivo_nome in arquivos_encontrados:
-            # Encontra o arquivo original no upload
-            arquivo_original = next(
-                (arq for arq in todos_arquivos if arq.name == arquivo_nome),
-                None
-            )
-            
-            if arquivo_original:
-                # Reseta o ponteiro do arquivo
-                arquivo_original.seek(0)
-                # Adiciona ao ZIP
-                zip_file.writestr(arquivo_original.name, arquivo_original.getvalue())
-    
-    zip_buffer.seek(0)
-    return zip_buffer
-
-def get_download_link(buffer, filename):
-    """
-    Cria um link de download para o arquivo
-    """
-    b64 = base64.b64encode(buffer.getvalue()).decode()
-    return f'<a href="data:application/zip;base64,{b64}" download="{filename}">📥 Clique aqui para baixar</a>'
+# [Manter as funções anteriores: extrair_texto_xml, extrair_texto_pdf, criar_zip_resultado, get_download_link]
 
 def processar_arquivos(arquivos_uploaded):
     """
@@ -84,16 +82,63 @@ def processar_arquivos(arquivos_uploaded):
     return pd.DataFrame(index)
 
 def main():
-    st.title("🔍 Busca em Notas Fiscais")
-    st.write("Selecione suas notas fiscais e pesquise por produtos")
+    st.title("Hiper Center - 🔍 Busca em Notas Fiscais")
     
-    # Upload de múltiplos arquivos
-    arquivos = st.file_uploader(
-        "Selecione os arquivos PDF e XML",
-        type=['pdf', 'xml'],
-        accept_multiple_files=True,
-        help="Você pode selecionar múltiplos arquivos de uma vez"
+    # Instruções de uso (movido para o início)
+    with st.expander("ℹ️ Como usar", expanded=True):
+        st.markdown("""
+            **Opção 1 - Selecionar pasta:**
+            1. Digite o caminho completo da pasta que contém suas notas fiscais
+            2. Todos os PDFs e XMLs da pasta serão processados automaticamente
+            
+            **Opção 2 - Selecionar arquivos:**
+            1. Clique em 'Browse files' ou arraste os arquivos para a área indicada
+            2. Você pode selecionar múltiplos arquivos de uma vez
+            
+            **Após selecionar os arquivos:**
+            1. Aguarde o processamento dos arquivos
+            2. Digite o nome do produto que deseja buscar
+            3. Clique em 'Buscar'
+            4. Use o botão de download para baixar os arquivos encontrados
+            
+            **Tipos de arquivo suportados:**
+            - PDFs (digitais ou escaneados)
+            - XMLs de Nota Fiscal Eletrônica (NFe)
+            
+            **Dicas:**
+            - Para selecionar múltiplos arquivos:
+              - Windows: Ctrl + clique
+              - Mac: Command + clique
+            - O arquivo ZIP baixado conterá apenas as notas que contêm o produto buscado
+            """)
+    
+    # Opções de seleção de arquivos
+    st.header("📁 Selecione os arquivos")
+    
+    metodo = st.radio(
+        "Como você quer selecionar os arquivos?",
+        ["Selecionar pasta", "Selecionar arquivos individuais"]
     )
+    
+    arquivos = []
+    
+    if metodo == "Selecionar pasta":
+        caminho_pasta = st.text_input(
+            "Digite o caminho da pasta",
+            placeholder="Ex: C:/Notas ou /Users/seu_usuario/Notas"
+        )
+        
+        if caminho_pasta and os.path.isdir(caminho_pasta):
+            arquivos = processar_pasta_local(caminho_pasta)
+            if not arquivos:
+                st.warning("Nenhum arquivo PDF ou XML encontrado na pasta")
+    else:
+        arquivos = st.file_uploader(
+            "Selecione os arquivos PDF e XML",
+            type=['pdf', 'xml'],
+            accept_multiple_files=True,
+            help="Você pode selecionar múltiplos arquivos de uma vez"
+        )
     
     if arquivos:
         # Mostra estatísticas dos arquivos selecionados
@@ -165,29 +210,6 @@ def main():
                         fim = min(len(texto), posicao + 100)
                         contexto = "..." + texto[inicio:fim] + "..."
                         st.markdown(f"*{contexto}*")
-    
-    # Instruções de uso
-    with st.expander("ℹ️ Como usar"):
-        st.markdown("""
-            1. Clique em 'Browse files' ou arraste os arquivos para a área indicada
-            2. Você pode selecionar múltiplos arquivos de uma vez
-            3. Aguarde o processamento dos arquivos
-            4. Digite o nome do produto que deseja buscar
-            5. Clique em 'Buscar'
-            6. Use o botão de download para baixar os arquivos encontrados
-            
-            **Tipos de arquivo suportados:**
-            - PDFs (digitais ou escaneados)
-            - XMLs de Nota Fiscal Eletrônica (NFe)
-            
-            **Dicas:**
-            - Você pode selecionar vários arquivos de uma vez
-            - Para selecionar múltiplos arquivos:
-              - Windows: Ctrl + clique
-              - Mac: Command + clique
-            - Você pode arrastar arquivos direto do Finder/Explorer
-            - O arquivo ZIP baixado conterá apenas as notas que contêm o produto buscado
-            """)
 
 if __name__ == "__main__":
     main()
