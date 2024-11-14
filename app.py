@@ -354,14 +354,38 @@ def main():
                         </style>
                     """, unsafe_allow_html=True)
                     
-                    # Mostra os resultados
+              # Mostra os resultados
                     for idx, row in resultados.iterrows():
                         with st.expander(f"📄 {row['arquivo']} ({row['tipo']})", expanded=True):
                             col1, col2 = st.columns([3, 1])
                             
                             with col1:
                                 st.write("Trechos relevantes:")
-                                texto = row['conteudo'].lower()
-                                posicao = texto.find(termo_busca.lower())
-                                inicio = max(0, posicao - 100)
-                                fim = min(len(texto), posicao + 100)
+                                try:
+                                    texto = row['conteudo'].lower()
+                                    posicao = texto.find(termo_busca.lower())
+                                    inicio = max(0, posicao - 100)
+                                    fim = min(len(texto), posicao + 100)
+                                    contexto = "..." + texto[inicio:fim] + "..."
+                                    st.markdown(f"*{contexto}*")
+                                except Exception as e:
+                                    st.error(f"Erro ao mostrar contexto: {str(e)}")
+                            
+                            with col2:
+                                # Encontra o arquivo original
+                                arquivo_original = next(
+                                    (arq for arq in arquivos if arq.name == row['arquivo']),
+                                    None
+                                )
+                                if arquivo_original:
+                                    st.markdown(
+                                        get_individual_download_link(arquivo_original, row['arquivo']),
+                                        unsafe_allow_html=True
+                                    )
+                            
+            except Exception as e:
+                st.error(f"Erro durante a busca: {str(e)}")
+                st.info("Tente reprocessar os arquivos clicando em 'Reprocessar arquivos'")
+
+if __name__ == "__main__":
+    main()
