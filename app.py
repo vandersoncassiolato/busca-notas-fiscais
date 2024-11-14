@@ -374,12 +374,11 @@ def main():
                                 texto = row['conteudo'].lower()
                                 posicao = texto.find(termo_busca.lower())
                                 inicio = max(0, posicao - 100)
-                        fim = min(len(texto), posicao + 100)
+                                fim = min(len(texto), posicao + 100)
                                 contexto = "..." + texto[inicio:fim] + "..."
                                 st.markdown(f"*{contexto}*")
                             
                             with col2:
-                                # Encontra o arquivo original
                                 arquivo_original = next(
                                     (arq for arq in arquivos if arq.name == row['arquivo']),
                                     None
