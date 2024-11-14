@@ -20,12 +20,17 @@ st.set_page_config(
 )
 
 # Inicializa variável de controle de reinicialização
-if 'reiniciar_clicado' not in st.session_state:
-    st.session_state.reiniciar_clicado = False
+if 'arquivos_carregados' not in st.session_state:
+    st.session_state.arquivos_carregados = False
 
 def reiniciar_sistema():
-    st.session_state.reiniciar_clicado = True
-    st.session_state.clear()
+    """
+    Reinicia o sistema limpando a sessão
+    """
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.session_state.arquivos_carregados = False
+    return True
 
 def extrair_texto_xml(conteudo):
     """
@@ -219,11 +224,9 @@ def main():
     st.header("📁 Selecione os arquivos ou pasta")
     
     if st.button("🔄 Reiniciar"):
-        reiniciar_sistema()
-    
-    if st.session_state.reiniciar_clicado:
-        st.experimental_rerun()
-        st.session_state.reiniciar_clicado = False
+        if reiniciar_sistema():
+            st.success("Sistema reiniciado com sucesso!")
+            st.rerun()
     
     arquivos = st.file_uploader(
         "Arraste uma pasta ou selecione os arquivos",
