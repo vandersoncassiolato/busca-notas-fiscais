@@ -24,16 +24,20 @@ def reiniciar_sistema():
     Reinicia o sistema limpando a sessão e os arquivos
     """
     # Limpa todos os dados da sessão
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    st.session_state.clear()
+    if st.session_state:  # Verifica se existem dados na sessão
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
     
-    # Força um rerun completo da página
-    st.experimental_rerun()
+    # Recarrega a página de forma segura
+    st.cache_data.clear()
+    st.cache_resource.clear()
 
 # E no botão:
+    st.header("📁 Selecione os arquivos ou pasta")
+    
     if st.button("🔄 Reiniciar"):
         reiniciar_sistema()
+        st.stop()  # Para a execução após limpar
 
 def extrair_texto_xml(conteudo):
     """
