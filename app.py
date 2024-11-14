@@ -372,13 +372,13 @@ def main():
                         unsafe_allow_html=True
                     )
                     
-                    for idx, row in resultados.iterrows():
+                                 for idx, row in resultados.iterrows():
                         with st.expander(f"📄 {row['arquivo']} ({row['tipo']})", expanded=True):
                             col1, col2 = st.columns([3, 1])
                             
                             with col1:
                                 st.write("Trechos relevantes:")
-       texto = row['conteudo'].lower()
+                                texto = row['conteudo'].lower()
                                 posicao = texto.find(termo_busca.lower())
                                 inicio = max(0, posicao - 100)
                                 fim = min(len(texto), posicao + 100)
@@ -395,7 +395,7 @@ def main():
                                         get_individual_download_link(arquivo_original, row['arquivo']),
                                         unsafe_allow_html=True
                                     )
-            
+
             except Exception as e:
                 st.error(f"Erro durante a busca: {str(e)}")
                 st.info("Tente reprocessar os arquivos clicando em 'Reprocessar arquivos'")
