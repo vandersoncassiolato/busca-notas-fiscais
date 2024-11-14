@@ -17,103 +17,36 @@ st.set_page_config(
     layout="wide"
 )
 
-def extrair_texto_xml(arquivo):
-    """
-    Extrai informações relevantes de arquivos XML de NFe
-    """
-    try:
-        tree = ET.parse(arquivo)
-        root = tree.getroot()
-        
-        # Define o namespace padrão da NFe
-        ns = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
-        
-        # Extrai informações principais
-        info = []
-        
-        # Informações da nota
-        nfe_info = root.find('.//nfe:infNFe', ns)
-        if nfe_info is not None:
-            chave = nfe_info.get('Id', '')
-            info.append(f"Chave: {chave}")
-        
-        # Dados do emitente
-        emit = root.find('.//nfe:emit', ns)
-        if emit is not None:
-            nome_emit = emit.find('nfe:xNome', ns)
-            cnpj_emit = emit.find('nfe:CNPJ', ns)
-            if nome_emit is not None:
-                info.append(f"Emitente: {nome_emit.text}")
-            if cnpj_emit is not None:
-                info.append(f"CNPJ: {cnpj_emit.text}")
-        
-        # Dados dos produtos
-        produtos = root.findall('.//nfe:det', ns)
-        for prod in produtos:
-            prod_info = prod.find('nfe:prod', ns)
-            if prod_info is not None:
-                codigo = prod_info.find('nfe:cProd', ns)
-                descricao = prod_info.find('nfe:xProd', ns)
-                quantidade = prod_info.find('nfe:qCom', ns)
-                valor = prod_info.find('nfe:vUnCom', ns)
-                
-                prod_text = []
-                if descricao is not None:
-                    prod_text.append(f"Produto: {descricao.text}")
-                if codigo is not None:
-                    prod_text.append(f"Código: {codigo.text}")
-                if quantidade is not None:
-                    prod_text.append(f"Qtd: {quantidade.text}")
-                if valor is not None:
-                    prod_text.append(f"Valor: {valor.text}")
-                    
-                info.append(" | ".join(prod_text))
-        
-        return "\n".join(info)
-    except Exception as e:
-        st.error(f"Erro ao processar XML: {str(e)}")
-        return ""
-
-def extrair_texto_pdf(arquivo):
-    """
-    Extrai texto de arquivos PDF, sejam eles digitais ou escaneados
-    """
-    try:
-        reader = PdfReader(arquivo)
-        texto = ""
-        for pagina in reader.pages:
-            texto += pagina.extract_text()
-            
-        if not texto.strip():
-            imagens = pdf2image.convert_from_path(arquivo)
-            texto = ""
-            for imagem in imagens:
-                texto += pytesseract.image_to_string(imagem, lang='por')
-                
-        return texto
-    except Exception as e:
-        st.error(f"Erro ao processar PDF: {str(e)}")
-        return ""
+# [Mantenha as funções extrair_texto_xml e extrair_texto_pdf como estavam]
 
 def processar_pasta(caminho_pasta):
     """
     Processa todos os arquivos PDF e XML de uma pasta
     """
-    arquivos = []
-    
-    # Converte o caminho para objeto Path
-    pasta = Path(caminho_pasta)
-    
-    # Lista todos os arquivos PDF e XML na pasta
-    for arquivo in pasta.glob('*.*'):
-        if arquivo.suffix.lower() in ['.pdf', '.xml']:
-            arquivos.append({
-                'caminho': str(arquivo),
-                'nome': arquivo.name,
-                'tipo': 'PDF' if arquivo.suffix.lower() == '.pdf' else 'XML'
-            })
-    
-    return arquivos
+    try:
+        # Normaliza o caminho para o formato do sistema
+        caminho_pasta = os.path.expanduser(caminho_pasta)
+        pasta = Path(caminho_pasta)
+        
+        if not pasta.exists():
+            st.error(f"Pasta não encontrada: {caminho_pasta}")
+            st.info("Verifique se o caminho está correto e se você tem permissão de acesso.")
+            return []
+            
+        arquivos = []
+        # Lista todos os arquivos PDF e XML na pasta
+        for arquivo in pasta.glob('*.*'):
+            if arquivo.suffix.lower() in ['.pdf', '.xml']:
+                arquivos.append({
+                    'caminho': str(arquivo),
+                    'nome': arquivo.name,
+                    'tipo': 'PDF' if arquivo.suffix.lower() == '.pdf' else 'XML'
+                })
+                
+        return arquivos
+    except Exception as e:
+        st.error(f"Erro ao processar pasta: {str(e)}")
+        return []
 
 def criar_indice(arquivos):
     """
@@ -123,17 +56,21 @@ def criar_indice(arquivos):
     
     for arquivo in arquivos:
         with st.spinner(f'Processando {arquivo["nome"]}...'):
-            if arquivo['tipo'] == 'PDF':
-                texto = extrair_texto_pdf(arquivo['caminho'])
-            else:
-                texto = extrair_texto_xml(arquivo['caminho'])
-                
-            index.append({
-                'arquivo': arquivo['nome'],
-                'tipo': arquivo['tipo'],
-                'caminho': arquivo['caminho'],
-                'conteudo': texto
-            })
+            try:
+                if arquivo['tipo'] == 'PDF':
+                    texto = extrair_texto_pdf(arquivo['caminho'])
+                else:
+                    texto = extrair_texto_xml(arquivo['caminho'])
+                    
+                index.append({
+                    'arquivo': arquivo['nome'],
+                    'tipo': arquivo['tipo'],
+                    'caminho': arquivo['caminho'],
+                    'conteudo': texto
+                })
+            except Exception as e:
+                st.warning(f"Erro ao processar {arquivo['nome']}: {str(e)}")
+                continue
     
     return pd.DataFrame(index)
 
@@ -141,14 +78,27 @@ def main():
     st.title("🔍 Busca em Notas Fiscais")
     st.write("Selecione a pasta com suas notas fiscais e pesquise por produtos")
     
-    # Input da pasta
+    # Input da pasta com exemplos específicos para Mac
+    st.write("💡 **Dicas para o caminho da pasta:**")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.code("/Users/seunome/Downloads/notas")
+        st.caption("Exemplo de caminho completo")
+    with col2:
+        st.code("~/Downloads/notas")
+        st.caption("Usando ~ para pasta do usuário")
+    
     caminho_pasta = st.text_input(
         "Caminho da pasta com as notas fiscais",
-        placeholder="Ex: C:/Users/Seu_Usuario/Documentos/Notas_Fiscais",
+        value="~/Downloads/notas",
         help="Digite o caminho completo da pasta onde estão os arquivos PDF e XML"
     )
     
-    if caminho_pasta and os.path.isdir(caminho_pasta):
+    if caminho_pasta:
+        # Expande o ~ para o caminho completo do usuário
+        caminho_expandido = os.path.expanduser(caminho_pasta)
+        st.caption(f"Procurando em: {caminho_expandido}")
+        
         # Processa a pasta
         arquivos = processar_pasta(caminho_pasta)
         
@@ -166,7 +116,7 @@ def main():
                     st.write(f"- {arq['nome']} ({arq['tipo']})")
             
             # Processamento dos arquivos
-            if 'df_index' not in st.session_state:
+            if 'df_index' not in st.session_state or st.button("🔄 Reprocessar arquivos"):
                 with st.spinner('Processando arquivos...'):
                     st.session_state.df_index = criar_indice(arquivos)
                 st.success('✅ Processamento concluído!')
@@ -210,21 +160,23 @@ def main():
                             fim = min(len(texto), posicao + 100)
                             contexto = "..." + texto[inicio:fim] + "..."
                             st.markdown(f"*{contexto}*")
-        
-        else:
-            st.warning("Nenhum arquivo PDF ou XML encontrado na pasta")
-    elif caminho_pasta:
-        st.error("Pasta não encontrada. Verifique o caminho e tente novamente.")
     
     # Instruções de uso
     with st.expander("ℹ️ Como usar"):
         st.markdown("""
-            1. Digite o caminho completo da pasta onde estão suas notas fiscais
-               - Exemplo Windows: C:/Users/Seu_Usuario/Documentos/Notas_Fiscais
-               - Exemplo Linux/Mac: /home/seu_usuario/documentos/notas_fiscais
+            1. Digite o caminho da pasta onde estão suas notas fiscais
+               - Use `/Users/seunome/pasta` para caminho completo
+               - Ou use `~/pasta` como atalho para sua pasta de usuário
             2. Aguarde o processamento dos arquivos
             3. Digite o nome do produto que deseja buscar
             4. Clique em 'Buscar'
+            
+            **Dicas para Mac:**
+            - Para descobrir o caminho de uma pasta:
+              1. Abra o Finder e navegue até a pasta
+              2. Clique com botão direito na pasta
+              3. Pressione tecla Option (⌥)
+              4. Selecione "Copiar como caminho"
             
             **Importante:**
             - A pasta deve conter arquivos PDF e/ou XML
