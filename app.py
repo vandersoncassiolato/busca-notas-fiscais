@@ -20,16 +20,18 @@ st.set_page_config(
 )
 
 # Inicializa variável de controle de reinicialização
-if 'arquivos_carregados' not in st.session_state:
-    st.session_state.arquivos_carregados = False
+if 'key' not in st.session_state:
+    st.session_state.key = 0
 
 def reiniciar_sistema():
     """
-    Reinicia o sistema limpando a sessão
+    Reinicia o sistema limpando a sessão e forçando recarga do file_uploader
     """
+    # Limpa todas as chaves da sessão
     for key in list(st.session_state.keys()):
         del st.session_state[key]
-    st.session_state.arquivos_carregados = False
+    # Força uma nova chave para o file_uploader
+    st.session_state.key = st.session_state.get('key', 0) + 1
     return True
 
 def extrair_texto_xml(conteudo):
@@ -232,6 +234,7 @@ def main():
         "Arraste uma pasta ou selecione os arquivos",
         type=['pdf', 'xml'],
         accept_multiple_files=True,
+        key=f"uploader_{st.session_state.key}",  # Chave dinâmica
         help="Você pode arrastar uma pasta inteira ou selecionar arquivos individuais"
     )
     
