@@ -11,6 +11,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 import zipfile
 import base64
+import streamlit.components.v1 as components
 
 # Configuração da página
 st.set_page_config(
@@ -27,10 +28,8 @@ def reiniciar_sistema():
     """
     Reinicia o sistema limpando a sessão e forçando recarga do file_uploader
     """
-    # Limpa todas as chaves da sessão
     for key in list(st.session_state.keys()):
         del st.session_state[key]
-    # Força uma nova chave para o file_uploader
     st.session_state.key = st.session_state.get('key', 0) + 1
     return True
 
@@ -223,18 +222,49 @@ def main():
               - Mac: Command + clique
             """)
     
-    st.header("📁 Selecione os arquivos ou pasta")
+        st.header("📁 Selecione os arquivos ou pasta")
     
+    # Adiciona CSS para o popup
+    st.markdown("""
+        <style>
+        .dialog-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            z-index: 1000;
+        }
+        .dialog-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    # Botão Reiniciar com confirmação
     if st.button("🔄 Reiniciar"):
-        if reiniciar_sistema():
-            st.success("Sistema reiniciado com sucesso!")
-            st.rerun()
-    
+        confirmar = st.button("⚠️ Confirmar reinicialização", key="confirmar")
+        if confirmar:
+            if reiniciar_sistema():
+                st.success("Sistema reiniciado com sucesso!")
+                st.rerun()
+        else:
+            st.warning("Clique em 'Confirmar reinicialização' para limpar todos os arquivos e dados.")
+
     arquivos = st.file_uploader(
         "Arraste uma pasta ou selecione os arquivos",
         type=['pdf', 'xml'],
         accept_multiple_files=True,
-        key=f"uploader_{st.session_state.key}",  # Chave dinâmica
+        key=f"uploader_{st.session_state.key}",
         help="Você pode arrastar uma pasta inteira ou selecionar arquivos individuais"
     )
     
