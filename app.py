@@ -8,9 +8,7 @@ import io
 import os
 import tempfile
 import xml.etree.ElementTree as ET
-import requests
-import re
-from datetime import datetime
+from pathlib import Path
 
 # Configuração da página
 st.set_page_config(
@@ -19,52 +17,12 @@ st.set_page_config(
     layout="wide"
 )
 
-def extrair_id_pasta_drive(url):
-    """
-    Extrai o ID da pasta do Google Drive a partir da URL
-    """
-    padrao = r"folders/([a-zA-Z0-9-_]+)"
-    match = re.search(padrao, url)
-    if match:
-        return match.group(1)
-    return None
-
-def obter_arquivos_pasta(pasta_id):
-    """
-    Lista arquivos de uma pasta compartilhada do Google Drive
-    """
-    url = f"https://drive.google.com/drive/folders/{pasta_id}"
-    try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            # Aqui você precisaria implementar a lógica para extrair os links dos arquivos
-            # Como o Google Drive não permite listagem direta, você precisaria de uma lista
-            # de IDs dos arquivos ou links diretos
-            pass
-    except Exception as e:
-        st.error(f"Erro ao acessar pasta: {str(e)}")
-        return []
-
-def baixar_arquivo_drive(file_id):
-    """
-    Baixa um arquivo do Google Drive usando link direto
-    """
-    url = f"https://drive.google.com/uc?export=download&id={file_id}"
-    try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            return io.BytesIO(response.content)
-    except Exception as e:
-        st.error(f"Erro ao baixar arquivo: {str(e)}")
-        return None
-
 def extrair_texto_xml(arquivo):
     """
     Extrai informações relevantes de arquivos XML de NFe
     """
     try:
-        conteudo = arquivo.read()
-        tree = ET.ElementTree(ET.fromstring(conteudo))
+        tree = ET.parse(arquivo)
         root = tree.getroot()
         
         # Define o namespace padrão da NFe
@@ -127,11 +85,7 @@ def extrair_texto_pdf(arquivo):
             texto += pagina.extract_text()
             
         if not texto.strip():
-            with tempfile.NamedTemporaryFile(suffix='.pdf') as tmp:
-                tmp.write(arquivo.getvalue())
-                tmp.flush()
-                imagens = pdf2image.convert_from_path(tmp.name)
-                
+            imagens = pdf2image.convert_from_path(arquivo)
             texto = ""
             for imagem in imagens:
                 texto += pytesseract.image_to_string(imagem, lang='por')
@@ -141,72 +95,80 @@ def extrair_texto_pdf(arquivo):
         st.error(f"Erro ao processar PDF: {str(e)}")
         return ""
 
-def processar_links(links_text):
+def processar_pasta(caminho_pasta):
     """
-    Processa os links colados pelo usuário e extrai os IDs dos arquivos
+    Processa todos os arquivos PDF e XML de uma pasta
     """
-    links = links_text.split('\n')
     arquivos = []
     
-    for link in links:
-        link = link.strip()
-        if not link:
-            continue
-            
-        # Extrai ID do arquivo do link do Drive
-        file_id_match = re.search(r"[-\w]{25,}", link)
-        if file_id_match:
-            file_id = file_id_match.group(0)
-            tipo = 'PDF' if link.lower().endswith('.pdf') else 'XML' if link.lower().endswith('.xml') else None
-            
-            if tipo:
-                arquivos.append({
-                    'id': file_id,
-                    'tipo': tipo,
-                    'link': link
-                })
+    # Converte o caminho para objeto Path
+    pasta = Path(caminho_pasta)
+    
+    # Lista todos os arquivos PDF e XML na pasta
+    for arquivo in pasta.glob('*.*'):
+        if arquivo.suffix.lower() in ['.pdf', '.xml']:
+            arquivos.append({
+                'caminho': str(arquivo),
+                'nome': arquivo.name,
+                'tipo': 'PDF' if arquivo.suffix.lower() == '.pdf' else 'XML'
+            })
     
     return arquivos
 
+def criar_indice(arquivos):
+    """
+    Cria um índice de todos os arquivos e seus conteúdos
+    """
+    index = []
+    
+    for arquivo in arquivos:
+        with st.spinner(f'Processando {arquivo["nome"]}...'):
+            if arquivo['tipo'] == 'PDF':
+                texto = extrair_texto_pdf(arquivo['caminho'])
+            else:
+                texto = extrair_texto_xml(arquivo['caminho'])
+                
+            index.append({
+                'arquivo': arquivo['nome'],
+                'tipo': arquivo['tipo'],
+                'caminho': arquivo['caminho'],
+                'conteudo': texto
+            })
+    
+    return pd.DataFrame(index)
+
 def main():
     st.title("🔍 Busca em Notas Fiscais")
-    st.write("Cole os links dos arquivos do Google Drive e pesquise por produtos")
+    st.write("Selecione a pasta com suas notas fiscais e pesquise por produtos")
     
-    # Área de input dos links
-    st.header("📁 Links dos Arquivos")
-    links_text = st.text_area(
-        "Cole os links dos arquivos (um por linha)",
-        help="Os links devem ser públicos ou compartilhados com acesso",
-        height=150
+    # Input da pasta
+    caminho_pasta = st.text_input(
+        "Caminho da pasta com as notas fiscais",
+        placeholder="Ex: C:/Users/Seu_Usuario/Documentos/Notas_Fiscais",
+        help="Digite o caminho completo da pasta onde estão os arquivos PDF e XML"
     )
     
-    if links_text:
-        arquivos = processar_links(links_text)
+    if caminho_pasta and os.path.isdir(caminho_pasta):
+        # Processa a pasta
+        arquivos = processar_pasta(caminho_pasta)
         
         if arquivos:
-            st.success(f"✅ Encontrados {len(arquivos)} arquivo(s) válido(s)")
+            st.success(f"✅ Encontrados {len(arquivos)} arquivo(s)")
+            
+            # Mostra estatísticas
+            pdfs = sum(1 for f in arquivos if f['tipo'] == 'PDF')
+            xmls = sum(1 for f in arquivos if f['tipo'] == 'XML')
+            st.write(f"- {pdfs} PDFs\n- {xmls} XMLs")
+            
+            # Lista os arquivos encontrados
+            with st.expander("📄 Arquivos encontrados", expanded=False):
+                for arq in arquivos:
+                    st.write(f"- {arq['nome']} ({arq['tipo']})")
             
             # Processamento dos arquivos
             if 'df_index' not in st.session_state:
                 with st.spinner('Processando arquivos...'):
-                    index = []
-                    for arquivo in arquivos:
-                        with st.spinner(f'Processando arquivo {arquivo["id"]}...'):
-                            conteudo = baixar_arquivo_drive(arquivo['id'])
-                            if conteudo:
-                                if arquivo['tipo'] == 'PDF':
-                                    texto = extrair_texto_pdf(conteudo)
-                                else:
-                                    texto = extrair_texto_xml(conteudo)
-                                
-                                index.append({
-                                    'arquivo': arquivo['id'],
-                                    'tipo': arquivo['tipo'],
-                                    'link': arquivo['link'],
-                                    'conteudo': texto
-                                })
-                    
-                    st.session_state.df_index = pd.DataFrame(index)
+                    st.session_state.df_index = criar_indice(arquivos)
                 st.success('✅ Processamento concluído!')
             
             # Interface de busca
@@ -237,9 +199,9 @@ def main():
                     st.success(f"Encontrado em {len(resultados)} nota(s) fiscal(is)")
                     
                     for idx, row in resultados.iterrows():
-                        with st.expander(f"📄 Arquivo {row['tipo']}", expanded=True):
-                            st.write("Link do arquivo:")
-                            st.markdown(f"[Abrir no Drive]({row['link']})")
+                        with st.expander(f"📄 {row['arquivo']} ({row['tipo']})", expanded=True):
+                            st.write("Caminho do arquivo:")
+                            st.code(row['caminho'])
                             
                             st.write("Trechos relevantes:")
                             texto = row['conteudo'].lower()
@@ -250,24 +212,24 @@ def main():
                             st.markdown(f"*{contexto}*")
         
         else:
-            st.warning("Nenhum link válido encontrado")
+            st.warning("Nenhum arquivo PDF ou XML encontrado na pasta")
+    elif caminho_pasta:
+        st.error("Pasta não encontrada. Verifique o caminho e tente novamente.")
     
     # Instruções de uso
     with st.expander("ℹ️ Como usar"):
         st.markdown("""
-            1. No Google Drive, clique com botão direito em cada arquivo
-            2. Selecione "Obter link"
-            3. Configure o acesso como "Qualquer pessoa com o link"
-            4. Cole os links aqui (um por linha)
-            5. Aguarde o processamento
-            6. Digite o nome do produto que deseja buscar
-            7. Clique em 'Buscar'
+            1. Digite o caminho completo da pasta onde estão suas notas fiscais
+               - Exemplo Windows: C:/Users/Seu_Usuario/Documentos/Notas_Fiscais
+               - Exemplo Linux/Mac: /home/seu_usuario/documentos/notas_fiscais
+            2. Aguarde o processamento dos arquivos
+            3. Digite o nome do produto que deseja buscar
+            4. Clique em 'Buscar'
             
             **Importante:**
-            - Os arquivos precisam estar compartilhados com acesso "Qualquer pessoa com o link"
-            - São aceitos arquivos PDF e XML
-            - O link deve terminar com .pdf ou .xml
-            - O processamento pode demorar alguns minutos
+            - A pasta deve conter arquivos PDF e/ou XML
+            - O sistema processa automaticamente todos os arquivos da pasta
+            - Para PDFs escaneados, o processo pode ser mais lento
         """)
 
 if __name__ == "__main__":
