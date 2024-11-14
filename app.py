@@ -9,6 +9,8 @@ import os
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
+import zipfile
+import base64
 
 # Configuração da página
 st.set_page_config(
@@ -17,86 +19,40 @@ st.set_page_config(
     layout="wide"
 )
 
-def extrair_texto_xml(conteudo):
-    """
-    Extrai informações relevantes de arquivos XML de NFe
-    """
-    try:
-        root = ET.fromstring(conteudo)
-        
-        # Define o namespace padrão da NFe
-        ns = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
-        
-        # Extrai informações principais
-        info = []
-        
-        # Informações da nota
-        nfe_info = root.find('.//nfe:infNFe', ns)
-        if nfe_info is not None:
-            chave = nfe_info.get('Id', '')
-            info.append(f"Chave: {chave}")
-        
-        # Dados do emitente
-        emit = root.find('.//nfe:emit', ns)
-        if emit is not None:
-            nome_emit = emit.find('nfe:xNome', ns)
-            cnpj_emit = emit.find('nfe:CNPJ', ns)
-            if nome_emit is not None:
-                info.append(f"Emitente: {nome_emit.text}")
-            if cnpj_emit is not None:
-                info.append(f"CNPJ: {cnpj_emit.text}")
-        
-        # Dados dos produtos
-        produtos = root.findall('.//nfe:det', ns)
-        for prod in produtos:
-            prod_info = prod.find('nfe:prod', ns)
-            if prod_info is not None:
-                codigo = prod_info.find('nfe:cProd', ns)
-                descricao = prod_info.find('nfe:xProd', ns)
-                quantidade = prod_info.find('nfe:qCom', ns)
-                valor = prod_info.find('nfe:vUnCom', ns)
-                
-                prod_text = []
-                if descricao is not None:
-                    prod_text.append(f"Produto: {descricao.text}")
-                if codigo is not None:
-                    prod_text.append(f"Código: {codigo.text}")
-                if quantidade is not None:
-                    prod_text.append(f"Qtd: {quantidade.text}")
-                if valor is not None:
-                    prod_text.append(f"Valor: {valor.text}")
-                    
-                info.append(" | ".join(prod_text))
-        
-        return "\n".join(info)
-    except Exception as e:
-        st.error(f"Erro ao processar XML: {str(e)}")
-        return ""
+# [Manter as funções anteriores: extrair_texto_xml, extrair_texto_pdf]
 
-def extrair_texto_pdf(arquivo):
+def criar_zip_resultado(arquivos_encontrados, todos_arquivos):
     """
-    Extrai texto de arquivos PDF, sejam eles digitais ou escaneados
+    Cria um arquivo ZIP com os arquivos encontrados na busca
     """
-    try:
-        reader = PdfReader(arquivo)
-        texto = ""
-        for pagina in reader.pages:
-            texto += pagina.extract_text()
+    # Cria um buffer em memória para o ZIP
+    zip_buffer = io.BytesIO()
+    
+    # Cria o arquivo ZIP
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # Para cada arquivo encontrado
+        for arquivo_nome in arquivos_encontrados:
+            # Encontra o arquivo original no upload
+            arquivo_original = next(
+                (arq for arq in todos_arquivos if arq.name == arquivo_nome),
+                None
+            )
             
-        if not texto.strip():
-            with tempfile.NamedTemporaryFile(suffix='.pdf') as tmp:
-                tmp.write(arquivo.getvalue())
-                tmp.flush()
-                imagens = pdf2image.convert_from_path(tmp.name)
-                
-            texto = ""
-            for imagem in imagens:
-                texto += pytesseract.image_to_string(imagem, lang='por')
-                
-        return texto
-    except Exception as e:
-        st.error(f"Erro ao processar PDF: {str(e)}")
-        return ""
+            if arquivo_original:
+                # Reseta o ponteiro do arquivo
+                arquivo_original.seek(0)
+                # Adiciona ao ZIP
+                zip_file.writestr(arquivo_original.name, arquivo_original.getvalue())
+    
+    zip_buffer.seek(0)
+    return zip_buffer
+
+def get_download_link(buffer, filename):
+    """
+    Cria um link de download para o arquivo
+    """
+    b64 = base64.b64encode(buffer.getvalue()).decode()
+    return f'<a href="data:application/zip;base64,{b64}" download="{filename}">📥 Clique aqui para baixar</a>'
 
 def processar_arquivos(arquivos_uploaded):
     """
@@ -185,6 +141,21 @@ def main():
             else:
                 st.success(f"Encontrado em {len(resultados)} nota(s) fiscal(is)")
                 
+                # Criar ZIP com os resultados
+                arquivos_encontrados = resultados['arquivo'].tolist()
+                zip_buffer = criar_zip_resultado(arquivos_encontrados, arquivos)
+                
+                # Botão de download
+                st.markdown("### 📥 Download dos Resultados")
+                st.markdown(
+                    get_download_link(
+                        zip_buffer,
+                        f"notas_fiscais_{termo_busca.replace(' ', '_')}.zip"
+                    ),
+                    unsafe_allow_html=True
+                )
+                
+                # Mostra os resultados
                 for idx, row in resultados.iterrows():
                     with st.expander(f"📄 {row['arquivo']} ({row['tipo']})", expanded=True):
                         st.write("Trechos relevantes:")
@@ -203,6 +174,7 @@ def main():
             3. Aguarde o processamento dos arquivos
             4. Digite o nome do produto que deseja buscar
             5. Clique em 'Buscar'
+            6. Use o botão de download para baixar os arquivos encontrados
             
             **Tipos de arquivo suportados:**
             - PDFs (digitais ou escaneados)
@@ -214,6 +186,7 @@ def main():
               - Windows: Ctrl + clique
               - Mac: Command + clique
             - Você pode arrastar arquivos direto do Finder/Explorer
+            - O arquivo ZIP baixado conterá apenas as notas que contêm o produto buscado
             """)
 
 if __name__ == "__main__":
