@@ -222,7 +222,7 @@ def main():
             
             """)
     
-        st.header("📁 Selecione os arquivos ou pasta")
+
     
     # Adiciona CSS para o popup
     st.markdown("""
@@ -262,6 +262,8 @@ def main():
                 st.rerun()
             st.warning("Tem certeza? Todos os arquivos serão removidos.")
 
+        st.header("📁 Selecione os arquivos ou pasta")
+    
     arquivos = st.file_uploader(
         "Arraste uma pasta ou selecione os arquivos",
         type=['pdf', 'xml'],
