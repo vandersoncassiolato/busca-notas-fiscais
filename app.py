@@ -23,6 +23,8 @@ st.set_page_config(
 # Inicializa variável de controle de reinicialização
 if 'key' not in st.session_state:
     st.session_state.key = 0
+if 'confirmar_reinicio' not in st.session_state:
+    st.session_state.confirmar_reinicio = False
 
 def reiniciar_sistema():
     """
@@ -251,14 +253,19 @@ def main():
     """, unsafe_allow_html=True)
     
     # Botão Reiniciar com confirmação
-    if st.button("🔄 Reiniciar"):
-        confirmar = st.button("⚠️ Confirmar reinicialização", key="confirmar")
-        if confirmar:
-            if reiniciar_sistema():
-                st.success("Sistema reiniciado com sucesso!")
-                st.rerun()
-        else:
-            st.warning("Clique em 'Confirmar reinicialização' para limpar todos os arquivos e dados.")
+    col1, col2 = st.columns([1, 5])
+    with col1:
+        if st.button("🔄 Reiniciar"):
+            st.session_state.confirmar_reinicio = True
+    
+    # Mostra confirmação se o botão foi clicado
+    if st.session_state.confirmar_reinicio:
+        with col2:
+            if st.button("⚠️ Clique para confirmar a reinicialização"):
+                if reiniciar_sistema():
+                    st.success("Sistema reiniciado com sucesso!")
+                    st.rerun()
+            st.warning("Tem certeza? Todos os arquivos serão removidos.")
 
     arquivos = st.file_uploader(
         "Arraste uma pasta ou selecione os arquivos",
