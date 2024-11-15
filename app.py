@@ -381,23 +381,26 @@ def main():
             </style>
         """, unsafe_allow_html=True)
         
-        search_col1, search_col2 = st.columns([5, 1])
-        
-        with search_col1:
-            termo_busca = st.text_input(
-                "Digite o nome do produto",
-                placeholder="Ex: Fechadura, Parafuso, etc.",
-                label_visibility="collapsed"
-            )
-        
-        with search_col2:
-            buscar = st.button("Buscar", 
-                             use_container_width=True, 
-                             key="buscar_btn",
-                             help="Clique para buscar produtos")
-        
-        # Realiza a busca
-        if termo_busca and buscar:
+    search_col1, search_col2 = st.columns([5, 1])
+    
+    with search_col1:
+        # Adicionando callback para Enter
+        termo_busca = st.text_input(
+            "Digite o nome do produto",
+            placeholder="Ex: Fechadura, Parafuso, etc.",
+            label_visibility="collapsed",
+            key="search_input",
+            on_change=lambda: realizar_busca() if st.session_state.search_input else None
+        )
+    
+    with search_col2:
+        buscar = st.button("Buscar", 
+                          use_container_width=True, 
+                          key="buscar_btn")
+
+    # Função para realizar a busca
+    def realizar_busca():
+        if st.session_state.search_input:  # Se tiver texto para buscar
             try:
                 if 'df_index' not in st.session_state:
                     st.error("Por favor, faça o upload dos arquivos primeiro.")
@@ -462,6 +465,10 @@ def main():
             except Exception as e:
                 st.error(f"Erro durante a busca: {str(e)}")
                 st.info("Tente reprocessar os arquivos clicando em 'Reprocessar arquivos'")
+
+    # Executar busca se o botão for clicado ou se Enter for pressionado
+    if buscar or (termo_busca and st.session_state.get('search_input_changed', False)):
+        realizar_busca()
 
 if __name__ == "__main__":
     main()
