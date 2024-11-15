@@ -257,10 +257,10 @@ def main():
     
     with col2:
         if st.session_state.mostrar_confirmacao:
-            if st.button("⚠️ Clique para confirmar a reinicialização"):
+            st.warning("⚠️ Deseja realmente reiniciar?")
+            if st.button("Confirmar", type="primary"):
                 reiniciar_sistema()
                 st.rerun()
-            st.warning("Tem certeza? Todos os arquivos serão removidos.")
 
     st.header("📁 Selecione os arquivos ou pasta")
     
