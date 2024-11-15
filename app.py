@@ -362,6 +362,24 @@ def main():
         # Interface de busca
         st.header("🔎 Buscar Produtos")
         
+        # Adicionar CSS para alinhamento
+        st.markdown("""
+            <style>
+            .search-container {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+            }
+            .search-input {
+                flex: 1;
+            }
+            .search-button {
+                margin-top: 0 !important;
+                padding-top: 0 !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        
         search_col1, search_col2 = st.columns([5, 1])
         
         with search_col1:
@@ -372,8 +390,10 @@ def main():
             )
         
         with search_col2:
-            st.write("")  # Espaço para alinhar
-            buscar = st.button("Buscar", use_container_width=True, key="buscar_btn")
+            buscar = st.button("Buscar", 
+                             use_container_width=True, 
+                             key="buscar_btn",
+                             help="Clique para buscar produtos")
         
         # Realiza a busca
         if termo_busca and buscar:
