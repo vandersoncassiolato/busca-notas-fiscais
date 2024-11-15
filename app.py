@@ -27,13 +27,9 @@ if 'confirmar_reinicio' not in st.session_state:
     st.session_state.confirmar_reinicio = False
 
 def reiniciar_sistema():
-    """
-    Reinicia o sistema limpando a sessão e forçando recarga do file_uploader
-    """
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
+    st.session_state.clear()
     st.session_state.key = st.session_state.get('key', 0) + 1
-    return True
+    st.experimental_rerun()
 
 def extrair_texto_xml(conteudo):
     """
@@ -262,11 +258,10 @@ def main():
     if st.session_state.confirmar_reinicio:
         with col2:
             if st.button("⚠️ Clique para confirmar a reinicialização"):
-                if reiniciar_sistema():
-                    st.success("Sistema reiniciado com sucesso!")
-                    st.rerun()
+                reiniciar_sistema()
             st.warning("Tem certeza? Todos os arquivos serão removidos.")
 
+    # File uploader com key baseada na sessão
     arquivos = st.file_uploader(
         "Arraste uma pasta ou selecione os arquivos",
         type=['pdf', 'xml'],
