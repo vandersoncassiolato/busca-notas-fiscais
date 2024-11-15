@@ -207,7 +207,6 @@ def main():
             **Selecione os arquivos de uma das formas:**
             1. Arraste uma pasta inteira para a área de upload
             2. Selecione múltiplos arquivos
-            3. Combine as duas opções anteriores
             
             **Após selecionar:**
             1. Aguarde o processamento dos arquivos
@@ -221,11 +220,6 @@ def main():
             - PDFs (digitais ou escaneados)
             - XMLs de Nota Fiscal Eletrônica (NFe)
             
-            **Dicas:**
-            - Você pode arrastar uma pasta inteira do seu computador
-            - Para selecionar múltiplos arquivos:
-              - Windows: Ctrl + clique
-              - Mac: Command + clique
             """)
     
         st.header("📁 Selecione os arquivos ou pasta")
