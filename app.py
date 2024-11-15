@@ -39,6 +39,9 @@ def reiniciar_sistema():
 def toggle_confirmacao():
     st.session_state.mostrar_confirmacao = True
 
+def cancelar_reinicio():
+    st.session_state.mostrar_confirmacao = False
+    
 def extrair_texto_xml(conteudo):
     """
     Extrai informações relevantes de arquivos XML de NFe
@@ -222,8 +225,6 @@ def main():
             
             """)
     
-
-    
     # Adiciona CSS para o popup
     st.markdown("""
         <style>
@@ -258,9 +259,13 @@ def main():
     with col2:
         if st.session_state.mostrar_confirmacao:
             st.warning("⚠️ Deseja realmente reiniciar?")
-            if st.button("Confirmar", type="primary"):
-                reiniciar_sistema()
-                st.rerun()
+            col_conf1, col_conf2, col_conf3 = st.columns([1, 1, 3])
+            with col_conf1:
+                if st.button("Confirmar", type="primary"):
+                    reiniciar_sistema()
+                    st.rerun()
+            with col_conf2:
+                st.button("Cancelar", on_click=cancelar_reinicio)
 
     st.header("📁 Selecione os arquivos ou pasta")
     
