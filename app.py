@@ -258,12 +258,9 @@ def main():
     
     # Coluna para os botões de reiniciar
     col1, col2 = st.columns([1, 5])
-    
-    # Primeiro botão
     with col1:
         st.button("🔄 Reiniciar", on_click=toggle_confirmacao)
     
-    # Botão de confirmação
     with col2:
         if st.session_state.mostrar_confirmacao:
             if st.button("⚠️ Clique para confirmar a reinicialização"):
@@ -271,7 +268,6 @@ def main():
                 st.rerun()
             st.warning("Tem certeza? Todos os arquivos serão removidos.")
 
-    # File uploader
     arquivos = st.file_uploader(
         "Arraste uma pasta ou selecione os arquivos",
         type=['pdf', 'xml'],
@@ -364,21 +360,20 @@ def main():
             st.success('✅ Processamento concluído!')
         
         # Interface de busca
-    st.header("🔎 Buscar Produtos")
-    
-    # Usando colunas com proporção específica
-    col1, col2 = st.columns([4, 1])
-    
-    with col1:
-        termo_busca = st.text_input(
-            "Digite o nome do produto",
-            placeholder="Ex: Fechadura, Parafuso, etc.",
-            label_visibility="collapsed"  # Remove o label para alinhar melhor
-        )
-    
-    with col2:
-        st.markdown("<div style='padding-top: 1px;'></div>", unsafe_allow_html=True)  # Ajuste fino do alinhamento
-        buscar = st.button("Buscar", use_container_width=True)
+        st.header("🔎 Buscar Produtos")
+        
+        search_col1, search_col2 = st.columns([5, 1])
+        
+        with search_col1:
+            termo_busca = st.text_input(
+                "Digite o nome do produto",
+                placeholder="Ex: Fechadura, Parafuso, etc.",
+                label_visibility="collapsed"
+            )
+        
+        with search_col2:
+            st.write("")  # Espaço para alinhar
+            buscar = st.button("Buscar", use_container_width=True, key="buscar_btn")
         
         # Realiza a busca
         if termo_busca and buscar:
