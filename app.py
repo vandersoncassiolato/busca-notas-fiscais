@@ -1,3 +1,4 @@
+# Parte 1: Imports e configurações iniciais
 import streamlit as st
 import pandas as pd
 from PyPDF2 import PdfReader
@@ -26,6 +27,7 @@ if 'key' not in st.session_state:
 if 'mostrar_confirmacao' not in st.session_state:
     st.session_state.mostrar_confirmacao = False
 
+# Parte 2: Funções de controle e processamento de arquivos
 def reiniciar_sistema():
     """
     Reinicia o sistema limpando a sessão
@@ -222,61 +224,9 @@ def main():
             **Tipos de arquivo suportados:**
             - PDFs (digitais ou escaneados)
             - XMLs de Nota Fiscal Eletrônica (NFe)
-            
             """)
     
-    # Adiciona CSS para o popup
-    st.markdown("""
-        <style>
-        .dialog-container {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
-            z-index: 1000;
-        }
-        .dialog-backdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 999;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-    
-    # Coluna para os botões de reiniciar
-    col1, col2 = st.columns([1, 5])
-    with col1:
-        st.button("🔄 Reiniciar", on_click=toggle_confirmacao)
-    
-    with col2:
-        if st.session_state.mostrar_confirmacao:
-            st.warning("⚠️ Deseja realmente reiniciar?")
-            col_conf1, col_conf2, col_conf3 = st.columns([1, 1, 3])
-            with col_conf1:
-                if st.button("Confirmar", type="primary"):
-                    reiniciar_sistema()
-                    st.rerun()
-            with col_conf2:
-                st.button("Cancelar", on_click=cancelar_reinicio)
-
-    st.header("📁 Selecione os arquivos ou pasta")
-    
-    arquivos = st.file_uploader(
-        "Arraste uma pasta ou selecione os arquivos",
-        type=['pdf', 'xml'],
-        accept_multiple_files=True,
-        key=f"uploader_{st.session_state.key}",
-        help="Você pode arrastar uma pasta inteira ou selecionar arquivos individuais"
-    )
-    
+    # CSS global
     st.markdown("""
         <style>
         .download-button {
@@ -318,6 +268,33 @@ def main():
         }
         </style>
     """, unsafe_allow_html=True)
+    
+    # Botões de reiniciar
+    col1, col2 = st.columns([1, 5])
+    with col1:
+        st.button("🔄 Reiniciar", on_click=toggle_confirmacao)
+    
+    with col2:
+        if st.session_state.mostrar_confirmacao:
+            st.warning("⚠️ Deseja realmente reiniciar?")
+            col_conf1, col_conf2, col_conf3 = st.columns([1, 1, 3])
+            with col_conf1:
+                if st.button("Confirmar", type="primary"):
+                    reiniciar_sistema()
+                    st.rerun()
+            with col_conf2:
+                st.button("Cancelar", on_click=cancelar_reinicio)
+
+    st.header("📁 Selecione os arquivos ou pasta")
+    
+    arquivos = st.file_uploader(
+        "Arraste uma pasta ou selecione os arquivos",
+        type=['pdf', 'xml'],
+        accept_multiple_files=True,
+        key=f"uploader_{st.session_state.key}",
+        help="Você pode arrastar uma pasta inteira ou selecionar arquivos individuais"
+    )
+    
     if arquivos:
         # Mostra estatísticas dos arquivos selecionados
         pdfs = sum(1 for f in arquivos if f.name.lower().endswith('.pdf'))
@@ -363,44 +340,22 @@ def main():
         # Interface de busca
         st.header("🔎 Buscar Produtos")
         
-        # Adicionar CSS para alinhamento
-        st.markdown("""
-            <style>
-            .search-container {
-                display: flex;
-                align-items: center;
-                gap: 1rem;
-            }
-            .search-input {
-                flex: 1;
-            }
-            .search-button {
-                margin-top: 0 !important;
-                padding-top: 0 !important;
-            }
-            </style>
-        """, unsafe_allow_html=True)
+        search_col1, search_col2 = st.columns([5, 1])
         
-    search_col1, search_col2 = st.columns([5, 1])
-    
-    with search_col1:
-        # Adicionando callback para Enter
-        termo_busca = st.text_input(
-            "Digite o nome do produto",
-            placeholder="Ex: Fechadura, Parafuso, etc.",
-            label_visibility="collapsed",
-            key="search_input",
-            on_change=lambda: realizar_busca() if st.session_state.search_input else None
-        )
-    
-    with search_col2:
-        buscar = st.button("Buscar", 
-                          use_container_width=True, 
-                          key="buscar_btn")
+        with search_col1:
+            termo_busca = st.text_input(
+                "Digite o nome do produto",
+                placeholder="Ex: Fechadura, Parafuso, etc.",
+                label_visibility="collapsed",
+                key="search_input"
+            )
+        
+        with search_col2:
+            st.write("")  # Espaço para alinhar
+            buscar = st.button("Buscar", use_container_width=True)
 
-    # Função para realizar a busca
-    def realizar_busca():
-        if st.session_state.search_input:  # Se tiver texto para buscar
+        # Realizar busca
+        if termo_busca and (buscar or st.session_state.get('search_input_changed', False)):
             try:
                 if 'df_index' not in st.session_state:
                     st.error("Por favor, faça o upload dos arquivos primeiro.")
@@ -466,10 +421,5 @@ def main():
                 st.error(f"Erro durante a busca: {str(e)}")
                 st.info("Tente reprocessar os arquivos clicando em 'Reprocessar arquivos'")
 
-    # Executar busca se o botão for clicado ou se Enter for pressionado
-    if buscar or (termo_busca and st.session_state.get('search_input_changed', False)):
-        realizar_busca()
-
 if __name__ == "__main__":
     main()
-    
