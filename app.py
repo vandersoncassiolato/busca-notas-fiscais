@@ -23,13 +23,14 @@ st.set_page_config(
 # Inicializa variável de controle de reinicialização
 if 'key' not in st.session_state:
     st.session_state.key = 0
-if 'confirmar_reinicio' not in st.session_state:
-    st.session_state.confirmar_reinicio = False
 
 def reiniciar_sistema():
+    """
+    Reinicia o sistema limpando a sessão
+    """
+    st.cache_data.clear()
     st.session_state.clear()
-    st.session_state.key = st.session_state.get('key', 0) + 1
-    st.experimental_rerun()
+    st.session_state.key = 0
 
 def extrair_texto_xml(conteudo):
     """
@@ -248,20 +249,23 @@ def main():
         </style>
     """, unsafe_allow_html=True)
     
-    # Botão Reiniciar com confirmação
+    # Coluna para os botões de reiniciar
     col1, col2 = st.columns([1, 5])
+    
+    # Primeiro botão
     with col1:
         if st.button("🔄 Reiniciar"):
-            st.session_state.confirmar_reinicio = True
+            st.session_state.mostrar_confirmacao = True
     
-    # Mostra confirmação se o botão foi clicado
-    if st.session_state.confirmar_reinicio:
-        with col2:
-            if st.button("⚠️ Clique para confirmar a reinicialização"):
+    # Botão de confirmação
+    with col2:
+        if st.session_state.get('mostrar_confirmacao', False):
+            reiniciar = st.button("⚠️ Clique para confirmar a reinicialização")
+            if reiniciar:
                 reiniciar_sistema()
             st.warning("Tem certeza? Todos os arquivos serão removidos.")
 
-    # File uploader com key baseada na sessão
+    # File uploader
     arquivos = st.file_uploader(
         "Arraste uma pasta ou selecione os arquivos",
         type=['pdf', 'xml'],
