@@ -364,17 +364,21 @@ def main():
             st.success('✅ Processamento concluído!')
         
         # Interface de busca
-        st.header("🔎 Buscar Produtos")
-        col1, col2 = st.columns([3, 1])
-        
-        with col1:
-            termo_busca = st.text_input(
-                "Digite o nome do produto",
-                placeholder="Ex: Café, Açúcar, etc."
-            )
-        
-        with col2:
-            buscar = st.button("Buscar", use_container_width=True)
+    st.header("🔎 Buscar Produtos")
+    
+    # Usando colunas com proporção específica
+    col1, col2 = st.columns([4, 1])
+    
+    with col1:
+        termo_busca = st.text_input(
+            "Digite o nome do produto",
+            placeholder="Ex: Fechadura, Parafuso, etc.",
+            label_visibility="collapsed"  # Remove o label para alinhar melhor
+        )
+    
+    with col2:
+        st.markdown("<div style='padding-top: 1px;'></div>", unsafe_allow_html=True)  # Ajuste fino do alinhamento
+        buscar = st.button("Buscar", use_container_width=True)
         
         # Realiza a busca
         if termo_busca and buscar:
