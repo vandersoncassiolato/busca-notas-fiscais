@@ -258,17 +258,18 @@ def main():
         }
 
         /* Para o texto "Drag and drop files here" */
-        [data-testid="stFileUploader"] div[data-testid="stMarkdownContainer"] p {
+        [data-testid="stFileUploader"] div.css-9ycgxx {
             visibility: hidden;
             position: relative;
         }
 
-        [data-testid="stFileUploader"] div[data-testid="stMarkdownContainer"] p::after {
+        [data-testid="stFileUploader"] div.css-9ycgxx::after {
             content: "Arraste e solte os arquivos aqui";
             visibility: visible;
             position: absolute;
-            left: 0;
-            white-space: nowrap;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 0;
         }
         </style>
     """, unsafe_allow_html=True)
