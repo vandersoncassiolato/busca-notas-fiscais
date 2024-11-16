@@ -38,6 +38,25 @@ def reiniciar_sistema():
         if key not in ['key', 'mostrar_confirmacao']:
             del st.session_state[key]
 
+def get_theme_colors():
+    # Detecta se está no modo escuro
+    is_dark = st.get_theme().get("base", "") == "dark"
+    
+    if is_dark:
+        return {
+            'button_bg': '#2E2E2E',
+            'button_text': '#FFFFFF',
+            'button_border': '#404040',
+            'button_hover': '#3E3E3E',
+        }
+    else:
+        return {
+            'button_bg': '#FFFFFF',
+            'button_text': '#000000',
+            'button_border': '#DDDDDD',
+            'button_hover': '#F8F9FA',
+        }
+
 def toggle_confirmacao():
     st.session_state.mostrar_confirmacao = True
 
@@ -227,45 +246,60 @@ def main():
             """)
     
     # CSS global
-    st.markdown("""
+    colors = get_theme_colors()
+    st.markdown(f"""
         <style>
-        .download-button {
+        .download-button {{
             display: inline-block;
             padding: 0.5rem 1rem;
-            background-color: white !important;
-            color: black !important;
+            background-color: {colors['button_bg']} !important;
+            color: {colors['button_text']} !important;
             text-decoration: none;
             border-radius: 4px;
             transition: background-color 0.3s;
-            border: 1px solid #ddd;
-        }
-        .download-button:hover {
-            background-color: #f8f9fa !important;
-        }
-        .download-button-small {
+            border: 1px solid {colors['button_border']};
+        }}
+        .download-button:hover {{
+            background-color: {colors['button_hover']} !important;
+        }}
+        .download-button-small {{
             display: inline-block;
             padding: 0.3rem 0.7rem;
-            background-color: white !important;
-            color: black !important;
+            background-color: {colors['button_bg']} !important;
+            color: {colors['button_text']} !important;
             text-decoration: none;
             border-radius: 4px;
             transition: background-color 0.3s;
             font-size: 0.9em;
-            border: 1px solid #ddd;
-        }
-        .download-button-small:hover {
-            background-color: #f8f9fa !important;
-        }
+            border: 1px solid {colors['button_border']};
+        }}
+        .download-button-small:hover {{
+            background-color: {colors['button_hover']} !important;
+        }}
         
-        .stButton > button {
-            background-color: white !important;
-            color: black !important;
-            border: 1px solid #ddd !important;
-        }
-        .stButton > button:hover {
-            background-color: #f8f9fa !important;
-            border: 1px solid #ddd !important;
-        }
+        .stButton > button {{
+            background-color: {colors['button_bg']} !important;
+            color: {colors['button_text']} !important;
+            border: 1px solid {colors['button_border']} !important;
+        }}
+        .stButton > button:hover {{
+            background-color: {colors['button_hover']} !important;
+        }}
+        
+        div[data-testid="column"] {{
+            display: flex;
+            align-items: flex-start;
+            padding-top: 1px;
+        }}
+        
+        div[data-testid="column"] > div {{
+            width: 100%;
+        }}
+        
+        div.stButton > button {{
+            margin-top: 1px;
+            height: 45px;
+        }}
         </style>
     """, unsafe_allow_html=True)
     
