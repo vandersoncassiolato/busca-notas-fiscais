@@ -355,7 +355,7 @@ def main():
             
             div.stButton > button {
                 margin-top: 1px;
-                height: 35px;  /* Ajuste essa altura conforme necessário */
+                height: 30px;  /* Ajuste essa altura conforme necessário */
             }
             </style>
         """, unsafe_allow_html=True)
