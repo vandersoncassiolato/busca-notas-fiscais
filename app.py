@@ -39,17 +39,27 @@ def reiniciar_sistema():
             del st.session_state[key]
 
 def get_theme_colors():
-    # Detecta se está no modo escuro
-    is_dark = st.get_theme().get("base", "") == "dark"
-    
-    if is_dark:
-        return {
-            'button_bg': '#2E2E2E',
-            'button_text': '#FFFFFF',
-            'button_border': '#404040',
-            'button_hover': '#3E3E3E',
-        }
-    else:
+    """
+    Retorna as cores baseadas no tema atual do Streamlit
+    """
+    try:
+        # Tenta pegar o tema atual de forma mais segura
+        if st._config.get_option("theme.base") == "dark":
+            return {
+                'button_bg': '#2E2E2E',
+                'button_text': '#FFFFFF',
+                'button_border': '#404040',
+                'button_hover': '#3E3E3E',
+            }
+        else:
+            return {
+                'button_bg': '#FFFFFF',
+                'button_text': '#000000',
+                'button_border': '#DDDDDD',
+                'button_hover': '#F8F9FA',
+            }
+    except:
+        # Fallback para cores claras em caso de erro
         return {
             'button_bg': '#FFFFFF',
             'button_text': '#000000',
