@@ -259,6 +259,50 @@ def main():
     colors = get_theme_colors()
     st.markdown(f"""
         <style>
+                /* Esconde os ícones do topo direito */
+        section[data-testid="stSidebar"] > div {
+            display: none;
+        }
+
+        /* Esconde o menu superior direito completo */
+        .menu {
+            display: none !important;
+        }
+
+        /* Esconde os botões de ação no topo */
+        .stActionButton, .stDeployButton {
+            display: none !important;
+        }
+
+        /* Esconde o Manage app no rodapé */
+        footer {
+            display: none !important;
+        }
+
+        /* Remove a barra de ferramentas superior */
+        .stToolbar {
+            display: none !important;
+        }
+
+        /* Esconde elementos específicos do header */
+        [data-testid="stHeader"] {
+            display: none !important;
+        }
+
+        /* Esconde todos os controles da interface do Streamlit */
+        .main .block-container div[data-testid="stDecoration"] {
+            display: none !important;
+        }
+
+        /* Remove os ícones de GitHub e outros */
+        .st-emotion-cache-1dp5vir {
+            display: none !important;
+        }
+
+        /* Remove elementos do rodapé */
+        .st-emotion-cache-h5rgaw {
+            display: none !important;
+        }
         .download-button {{
             display: inline-block;
             padding: 0.5rem 1rem;
