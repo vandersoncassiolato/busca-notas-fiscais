@@ -240,32 +240,31 @@ def main():
     # Adicionar CSS para traduzir os textos do uploader
     st.markdown("""
         <style>
-        /* Traduz "Browse files" */
-        button[data-testid="stFileUploadButton"]::before {
-            content: "Procurar arquivos";
-            position: absolute;
-            left: 0;
-            right: 0;
-            text-align: center;
-        }
-        button[data-testid="stFileUploadButton"] {
-            color: transparent;
+        [data-testid="stFileUploader"] span {
+            visibility: hidden;
+            position: relative;
         }
         
-        /* Traduz "Drag and drop files here" */
-        .stFileUploader > section[data-testid="stFileUploadDropzone"] > div::before {
-            content: "Arraste e solte os arquivos aqui";
+        [data-testid="stFileUploader"] span::after {
+            visibility: visible;
             position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
+            left: 0;
+            content: "Procurar arquivos";
         }
-        .stFileUploader > section[data-testid="stFileUploadDropzone"] > div {
-            color: transparent;
+
+        [data-testid="stFileUploader"] div[data-testid="stMarkdownContainer"] p {
+            visibility: hidden;
+            position: relative;
+        }
+
+        [data-testid="stFileUploader"] div[data-testid="stMarkdownContainer"] p::after {
+            visibility: visible;
+            position: absolute;
+            left: 0;
+            content: "Arraste e solte os arquivos aqui";
         }
         </style>
     """, unsafe_allow_html=True)
-
     
     with st.expander("ℹ️ Como usar", expanded=False):
         st.markdown("""
