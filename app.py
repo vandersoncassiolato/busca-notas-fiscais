@@ -235,6 +235,55 @@ def processar_arquivos(arquivos_uploaded, progress_bar, status_text):
     return pd.DataFrame(index)
 def main():
     st.title("Hiper Center - 🔍 Busca em Notas Fiscais")
+
+     st.markdown("""
+        <style>
+        /* Esconde os ícones do topo direito */
+        section[data-testid="stSidebar"] > div {
+            display: none;
+        }
+
+        /* Esconde o menu superior direito completo */
+        .menu {
+            display: none !important;
+        }
+
+        /* Esconde os botões de ação no topo */
+        .stActionButton, .stDeployButton {
+            display: none !important;
+        }
+
+        /* Esconde o Manage app no rodapé */
+        footer {
+            display: none !important;
+        }
+
+        /* Remove a barra de ferramentas superior */
+        .stToolbar {
+            display: none !important;
+        }
+
+        /* Esconde elementos específicos do header */
+        [data-testid="stHeader"] {
+            display: none !important;
+        }
+
+        /* Esconde todos os controles da interface do Streamlit */
+        .main .block-container div[data-testid="stDecoration"] {
+            display: none !important;
+        }
+
+        /* Remove os ícones de GitHub e outros */
+        .st-emotion-cache-1dp5vir {
+            display: none !important;
+        }
+
+        /* Remove elementos do rodapé */
+        .st-emotion-cache-h5rgaw {
+            display: none !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
     
     with st.expander("ℹ️ Como usar", expanded=False):
         st.markdown("""
