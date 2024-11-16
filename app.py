@@ -153,7 +153,6 @@ def extrair_texto_pdf(arquivo):
     except Exception as e:
         st.error(f"Erro ao processar PDF: {str(e)}")
         return ""
-        
 def criar_zip_resultado(arquivos_encontrados, todos_arquivos):
     """
     Cria um arquivo ZIP com os arquivos encontrados na busca
@@ -234,45 +233,8 @@ def processar_arquivos(arquivos_uploaded, progress_bar, status_text):
         return pd.DataFrame(columns=['arquivo', 'tipo', 'conteudo'])
     
     return pd.DataFrame(index)
-    
 def main():
     st.title("Hiper Center - 🔍 Busca em Notas Fiscais")
-
-    # Adicionar CSS para traduzir os textos do uploader
-    st.markdown("""
-        <style>
-        /* Para o botão "Browse files" */
-        button[kind="secondary"] {
-            visibility: hidden;
-            position: relative;
-        }
-        
-        button[kind="secondary"]::after {
-            content: "Procurar arquivos";
-            visibility: visible;
-            position: absolute;
-            left: 0;
-            right: 0;
-            padding: 0 16px;
-            background-color: inherit;
-        }
-
-        /* Para o texto "Drag and drop files here" */
-        [data-testid="stFileUploader"] div.css-9ycgxx {
-            visibility: hidden;
-            position: relative;
-        }
-
-        [data-testid="stFileUploader"] div.css-9ycgxx::after {
-            content: "Arraste e solte os arquivos aqui";
-            visibility: visible;
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            top: 0;
-        }
-        </style>
-    """, unsafe_allow_html=True)
     
     with st.expander("ℹ️ Como usar", expanded=False):
         st.markdown("""
@@ -525,3 +487,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
