@@ -238,6 +238,10 @@ def main():
 
     st.markdown("""
         <style>
+                /* Reduz o espaço superior */
+        .block-container {
+            padding-top: 2rem !important;
+        }
         /* Esconde os ícones do topo direito */
         section[data-testid="stSidebar"] > div {
             display: none;
