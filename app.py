@@ -340,10 +340,29 @@ def main():
         # Interface de busca
         st.header("🔎 Buscar Produtos")
         
+        # CSS para alinhamento do botão
+        st.markdown("""
+            <style>
+            div[data-testid="column"] {
+                display: flex;
+                align-items: flex-start;
+                padding-top: 1px;
+            }
+            
+            div[data-testid="column"] > div {
+                width: 100%;
+            }
+            
+            div.stButton > button {
+                margin-top: 1px;
+                height: 45px;  /* Ajuste essa altura conforme necessário */
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        
         search_col1, search_col2 = st.columns([5, 1])
         
         with search_col1:
-            # Adicionando on_change para detectar Enter
             termo_busca = st.text_input(
                 "Digite o nome do produto",
                 placeholder="Ex: Fechadura, Parafuso, etc.",
@@ -353,9 +372,7 @@ def main():
             )
         
         with search_col2:
-            st.markdown("<div style='padding-top: 3px;'></div>", unsafe_allow_html=True)  # Ajuste fino do alinhamento
             buscar = st.button("Buscar", use_container_width=True)
-
         # Realizar busca
         if (termo_busca and st.session_state.get('search_triggered', False)) or buscar:
             st.session_state.search_triggered = False  # Reset do trigger
