@@ -233,23 +233,39 @@ def processar_arquivos(arquivos_uploaded, progress_bar, status_text):
         return pd.DataFrame(columns=['arquivo', 'tipo', 'conteudo'])
     
     return pd.DataFrame(index)
+    
 def main():
     st.title("Hiper Center - 🔍 Busca em Notas Fiscais")
 
-        # Adicionar CSS para traduzir os textos do uploader
+    # Adicionar CSS para traduzir os textos do uploader
     st.markdown("""
         <style>
-        /* Traduz "Browse files" para "Procurar arquivos" */
-        .stFileUploader button::before {
-            content: "Procurar arquivos" !important;
+        /* Traduz "Browse files" */
+        button[data-testid="stFileUploadButton"]::before {
+            content: "Procurar arquivos";
+            position: absolute;
+            left: 0;
+            right: 0;
+            text-align: center;
+        }
+        button[data-testid="stFileUploadButton"] {
+            color: transparent;
         }
         
         /* Traduz "Drag and drop files here" */
-        .uploadMainContainer:not(.drag) .drag-text::before {
-            content: "Arraste e solte os arquivos aqui" !important;
+        .stFileUploader > section[data-testid="stFileUploadDropzone"] > div::before {
+            content: "Arraste e solte os arquivos aqui";
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+        .stFileUploader > section[data-testid="stFileUploadDropzone"] > div {
+            color: transparent;
         }
         </style>
     """, unsafe_allow_html=True)
+
     
     with st.expander("ℹ️ Como usar", expanded=False):
         st.markdown("""
