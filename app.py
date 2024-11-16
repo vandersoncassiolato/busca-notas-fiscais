@@ -236,7 +236,7 @@ def processar_arquivos(arquivos_uploaded, progress_bar, status_text):
 def main():
     st.title("Hiper Center - 🔍 Busca em Notas Fiscais")
 
-     st.markdown("""
+    st.markdown("""
         <style>
         /* Esconde os ícones do topo direito */
         section[data-testid="stSidebar"] > div {
