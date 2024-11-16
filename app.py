@@ -153,6 +153,7 @@ def extrair_texto_pdf(arquivo):
     except Exception as e:
         st.error(f"Erro ao processar PDF: {str(e)}")
         return ""
+        
 def criar_zip_resultado(arquivos_encontrados, todos_arquivos):
     """
     Cria um arquivo ZIP com os arquivos encontrados na busca
@@ -240,28 +241,34 @@ def main():
     # Adicionar CSS para traduzir os textos do uploader
     st.markdown("""
         <style>
-        [data-testid="stFileUploader"] span {
+        /* Para o botão "Browse files" */
+        button[kind="secondary"] {
             visibility: hidden;
             position: relative;
         }
         
-        [data-testid="stFileUploader"] span::after {
+        button[kind="secondary"]::after {
+            content: "Procurar arquivos";
             visibility: visible;
             position: absolute;
             left: 0;
-            content: "Procurar arquivos";
+            right: 0;
+            padding: 0 16px;
+            background-color: inherit;
         }
 
+        /* Para o texto "Drag and drop files here" */
         [data-testid="stFileUploader"] div[data-testid="stMarkdownContainer"] p {
             visibility: hidden;
             position: relative;
         }
 
         [data-testid="stFileUploader"] div[data-testid="stMarkdownContainer"] p::after {
+            content: "Arraste e solte os arquivos aqui";
             visibility: visible;
             position: absolute;
             left: 0;
-            content: "Arraste e solte os arquivos aqui";
+            white-space: nowrap;
         }
         </style>
     """, unsafe_allow_html=True)
