@@ -282,28 +282,6 @@ def main():
         .st-emotion-cache-h5rgaw {
             display: none !important;
         }
-        /* Esconde o rodapé e o Manage app */
-        footer {
-            display: none !important;
-        }
-        .st-emotion-cache-h5rgaw, .st-emotion-cache-cio0dv {
-            display: none !important;
-        }
-        .reportview-container .main footer {
-            display: none !important;
-        }
-        /* Esconde elementos específicos do rodapé */
-        .element-container:last-child {
-            display: none !important;
-        }
-        /* Esconde o botão Manage app */
-        [data-testid="manage-app-button"] {
-            display: none !important;
-        }
-        /* Esconde o container do rodapé */
-        [data-testid="stFooter"] {
-            display: none !important;
-        }
         </style>
     """, unsafe_allow_html=True)
     
