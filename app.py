@@ -16,7 +16,7 @@ import streamlit.components.v1 as components
 
 # Configuração da página
 st.set_page_config(
-    page_title="Hiper Center - Busca em Notas Fiscais",
+    page_title="Hiper Materiais - Busca em Notas Fiscais",
     page_icon="🔍",
     layout="wide"
 )
