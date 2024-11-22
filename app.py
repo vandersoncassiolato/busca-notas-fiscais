@@ -234,7 +234,7 @@ def processar_arquivos(arquivos_uploaded, progress_bar, status_text):
     
     return pd.DataFrame(index)
 def main():
-    st.title("Hiper Center - 🔍 Busca em Notas Fiscais")
+    st.title("Hiper Materiais - 🔍 Busca em Notas Fiscais")
 
     st.markdown("""
         <style>
