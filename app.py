@@ -83,7 +83,7 @@ def extrair_texto_xml(conteudo):
         # Define o namespace padrão da NFe
         ns = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
         
-        # Extrai informações principais
+        # Lista para armazenar todas as informações
         info = []
         
         # Informações da nota
@@ -100,7 +100,17 @@ def extrair_texto_xml(conteudo):
             if nome_emit is not None:
                 info.append(f"Emitente: {nome_emit.text}")
             if cnpj_emit is not None:
-                info.append(f"CNPJ: {cnpj_emit.text}")
+                info.append(f"CNPJ Emitente: {cnpj_emit.text}")
+        
+        # Dados do destinatário
+        dest = root.find('.//nfe:dest', ns)
+        if dest is not None:
+            nome_dest = dest.find('nfe:xNome', ns)
+            cnpj_dest = dest.find('nfe:CNPJ', ns)
+            if nome_dest is not None:
+                info.append(f"Destinatário: {nome_dest.text}")
+            if cnpj_dest is not None:
+                info.append(f"CNPJ Destinatário: {cnpj_dest.text}")
         
         # Dados dos produtos
         produtos = root.findall('.//nfe:det', ns)
@@ -109,14 +119,17 @@ def extrair_texto_xml(conteudo):
             if prod_info is not None:
                 codigo = prod_info.find('nfe:cProd', ns)
                 descricao = prod_info.find('nfe:xProd', ns)
+                ncm = prod_info.find('nfe:NCM', ns)
                 quantidade = prod_info.find('nfe:qCom', ns)
                 valor = prod_info.find('nfe:vUnCom', ns)
                 
                 prod_text = []
-                if descricao is not None:
-                    prod_text.append(f"Produto: {descricao.text}")
                 if codigo is not None:
                     prod_text.append(f"Código: {codigo.text}")
+                if descricao is not None:
+                    prod_text.append(f"Produto: {descricao.text}")
+                if ncm is not None:
+                    prod_text.append(f"NCM: {ncm.text}")
                 if quantidade is not None:
                     prod_text.append(f"Qtd: {quantidade.text}")
                 if valor is not None:
@@ -124,11 +137,17 @@ def extrair_texto_xml(conteudo):
                     
                 info.append(" | ".join(prod_text))
         
+        # Adiciona valores totais
+        total = root.find('.//nfe:ICMSTot', ns)
+        if total is not None:
+            vnf = total.find('nfe:vNF', ns)
+            if vnf is not None:
+                info.append(f"Valor Total NF: {vnf.text}")
+        
         return "\n".join(info)
     except Exception as e:
         st.error(f"Erro ao processar XML: {str(e)}")
         return ""
-
 def extrair_texto_pdf(arquivo):
     """
     Extrai texto de arquivos PDF, sejam eles digitais ou escaneados
