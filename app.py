@@ -511,70 +511,70 @@ def main():
             if 'df_index' not in st.session_state:
                 st.error("Por favor, faça o upload dos arquivos primeiro.")
                 return
-        
-        if 'conteudo' not in st.session_state.df_index.columns:
-            st.error("Erro na estrutura dos dados. Tente reprocessar os arquivos.")
-            return
-        
-        # Normaliza o termo de busca se parecer um CNPJ
-        termo_busca_normalizado = ''.join(filter(str.isdigit, termo_busca))
-        
-        st.session_state.df_index['conteudo'] = st.session_state.df_index['conteudo'].fillna('')
-        
-        # Busca tanto pelo termo original quanto pelo termo normalizado
-        mascara = st.session_state.df_index['conteudo'].str.lower().str.contains(
-            f"{termo_busca.lower()}|{termo_busca_normalizado}",
-            regex=True,
-            na=False
-        )
-        
-        resultados = st.session_state.df_index[mascara]
-        
-        st.header("📋 Resultados")
-        if len(resultados) == 0:
-            st.warning(f"Nenhuma nota fiscal encontrada com o produto '{termo_busca}'")
-        else:
-            st.success(f"Encontrado em {len(resultados)} nota(s) fiscal(is)")
             
-            arquivos_encontrados = resultados['arquivo'].tolist()
-            zip_buffer = criar_zip_resultado(arquivos_encontrados, arquivos)
+            if 'conteudo' not in st.session_state.df_index.columns:
+                st.error("Erro na estrutura dos dados. Tente reprocessar os arquivos.")
+                return
             
-            st.markdown("### 📥 Download dos Resultados")
-            st.markdown(
-                get_download_link(
-                    zip_buffer,
-                    f"notas_fiscais_{termo_busca.replace(' ', '_')}.zip"
-                ),
-                unsafe_allow_html=True
+            # Normaliza o termo de busca se parecer um CNPJ
+            termo_busca_normalizado = ''.join(filter(str.isdigit, termo_busca))
+            
+            st.session_state.df_index['conteudo'] = st.session_state.df_index['conteudo'].fillna('')
+            
+            # Busca tanto pelo termo original quanto pelo termo normalizado
+            mascara = st.session_state.df_index['conteudo'].str.lower().str.contains(
+                f"{termo_busca.lower()}|{termo_busca_normalizado}",
+                regex=True,
+                na=False
             )
             
-            for idx, row in resultados.iterrows():
-                with st.expander(f"📄 {row['arquivo']} ({row['tipo']})", expanded=True):
-                    col1, col2 = st.columns([3, 1])
-                    
-                    with col1:
-                        st.write("Trechos relevantes:")
-                        texto = row['conteudo'].lower()
-                        posicao = texto.find(termo_busca.lower())
-                        inicio = max(0, posicao - 100)
-                        fim = min(len(texto), posicao + 100)
-                        contexto = "..." + texto[inicio:fim] + "..."
-                        st.markdown(f"*{contexto}*")
-                    
-                    with col2:
-                        arquivo_original = next(
-                            (arq for arq in arquivos if arq.name == row['arquivo']),
-                            None
-                        )
-                        if arquivo_original:
-                            st.markdown(
-                                get_individual_download_link(arquivo_original, row['arquivo']),
-                                unsafe_allow_html=True
+            resultados = st.session_state.df_index[mascara]
+            
+            st.header("📋 Resultados")
+            if len(resultados) == 0:
+                st.warning(f"Nenhuma nota fiscal encontrada com o produto '{termo_busca}'")
+            else:
+                st.success(f"Encontrado em {len(resultados)} nota(s) fiscal(is)")
+                
+                arquivos_encontrados = resultados['arquivo'].tolist()
+                zip_buffer = criar_zip_resultado(arquivos_encontrados, arquivos)
+                
+                st.markdown("### 📥 Download dos Resultados")
+                st.markdown(
+                    get_download_link(
+                        zip_buffer,
+                        f"notas_fiscais_{termo_busca.replace(' ', '_')}.zip"
+                    ),
+                    unsafe_allow_html=True
+                )
+                
+                for idx, row in resultados.iterrows():
+                    with st.expander(f"📄 {row['arquivo']} ({row['tipo']})", expanded=True):
+                        col1, col2 = st.columns([3, 1])
+                        
+                        with col1:
+                            st.write("Trechos relevantes:")
+                            texto = row['conteudo'].lower()
+                            posicao = texto.find(termo_busca.lower())
+                            inicio = max(0, posicao - 100)
+                            fim = min(len(texto), posicao + 100)
+                            contexto = "..." + texto[inicio:fim] + "..."
+                            st.markdown(f"*{contexto}*")
+                        
+                        with col2:
+                            arquivo_original = next(
+                                (arq for arq in arquivos if arq.name == row['arquivo']),
+                                None
                             )
-    
-    except Exception as e:
-        st.error(f"Erro durante a busca: {str(e)}")
-        st.info("Tente reprocessar os arquivos clicando em 'Reprocessar arquivos'")
+                            if arquivo_original:
+                                st.markdown(
+                                    get_individual_download_link(arquivo_original, row['arquivo']),
+                                    unsafe_allow_html=True
+                                )
+                                
+        except Exception as e:
+            st.error(f"Erro durante a busca: {str(e)}")
+            st.info("Tente reprocessar os arquivos clicando em 'Reprocessar arquivos'")
 
 if __name__ == "__main__":
     main()
