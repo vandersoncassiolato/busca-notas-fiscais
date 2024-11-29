@@ -27,7 +27,16 @@ if 'key' not in st.session_state:
 if 'mostrar_confirmacao' not in st.session_state:
     st.session_state.mostrar_confirmacao = False
 
-# Parte 2: Funções de controle e processamento de arquivos
+# Função de utilidade para normalizar CNPJ
+def normalizar_cnpj(cnpj):
+    """
+    Remove caracteres especiais do CNPJ
+    """
+    if cnpj:
+        return ''.join(filter(str.isdigit, cnpj))
+    return ''
+
+# Funções de controle do sistema
 def reiniciar_sistema():
     """
     Reinicia o sistema limpando a sessão
@@ -37,6 +46,12 @@ def reiniciar_sistema():
     for key in list(st.session_state.keys()):
         if key not in ['key', 'mostrar_confirmacao']:
             del st.session_state[key]
+
+def toggle_confirmacao():
+    st.session_state.mostrar_confirmacao = True
+
+def cancelar_reinicio():
+    st.session_state.mostrar_confirmacao = False
 
 def get_theme_colors():
     """
@@ -66,21 +81,6 @@ def get_theme_colors():
             'button_border': '#DDDDDD',
             'button_hover': '#F8F9FA',
         }
-
-def toggle_confirmacao():
-    st.session_state.mostrar_confirmacao = True
-
-def cancelar_reinicio():
-    st.session_state.mostrar_confirmacao = False
-    
-def normalizar_cnpj(cnpj):
-    """
-    Remove caracteres especiais do CNPJ
-    """
-    if cnpj:
-        return ''.join(filter(str.isdigit, cnpj))
-    return ''
-
 def extrair_texto_xml(conteudo):
     """
     Extrai informações relevantes de arquivos XML de NFe
@@ -162,6 +162,7 @@ def extrair_texto_xml(conteudo):
     except Exception as e:
         st.error(f"Erro ao processar XML: {str(e)}")
         return ""
+
 def extrair_texto_pdf(arquivo):
     """
     Extrai texto de arquivos PDF, sejam eles digitais ou escaneados
@@ -271,7 +272,7 @@ def main():
 
     st.markdown("""
         <style>
-                /* Reduz o espaço superior */
+        /* Reduz o espaço superior */
         .block-container {
             padding-top: 2rem !important;
         }
@@ -398,7 +399,6 @@ def main():
         }}
         </style>
     """, unsafe_allow_html=True)
-    
     # Botões de reiniciar
     col1, col2 = st.columns([1, 5])
     with col1:
@@ -466,7 +466,6 @@ def main():
             status_text.empty()
             
             st.success('✅ Processamento concluído!')
-        
         # Interface de busca
         st.header("🔎 Buscar Produtos")
         
@@ -485,7 +484,7 @@ def main():
             
             div.stButton > button {
                 margin-top: 1px;
-                height: 30px;  /* Ajuste essa altura conforme necessário */
+                height: 30px;
             }
             </style>
         """, unsafe_allow_html=True)
@@ -504,78 +503,77 @@ def main():
         with search_col2:
             buscar = st.button("Buscar", use_container_width=True)
 
-    # Realizar busca (movido para dentro da função main)
+        # Realizar busca
         if (termo_busca and st.session_state.get('search_triggered', False)) or buscar:
             st.session_state.search_triggered = False  # Reset do trigger
             try:
                 if 'df_index' not in st.session_state:
                     st.error("Por favor, faça o upload dos arquivos primeiro.")
                     return
-            
+                
                 if 'conteudo' not in st.session_state.df_index.columns:
                     st.error("Erro na estrutura dos dados. Tente reprocessar os arquivos.")
                     return
-            
-            # Normaliza o termo de busca se parecer um CNPJ
-            termo_busca_normalizado = ''.join(filter(str.isdigit, termo_busca))
-            
-            st.session_state.df_index['conteudo'] = st.session_state.df_index['conteudo'].fillna('')
-            
-            # Busca tanto pelo termo original quanto pelo termo normalizado
-            mascara = st.session_state.df_index['conteudo'].str.lower().str.contains(
-                f"{termo_busca.lower()}|{termo_busca_normalizado}",
-                regex=True,
-                na=False
-            )
-            
-            resultados = st.session_state.df_index[mascara]
-            
-            st.header("📋 Resultados")
-            if len(resultados) == 0:
-                st.warning(f"Nenhuma nota fiscal encontrada com o produto '{termo_busca}'")
-            else:
-                st.success(f"Encontrado em {len(resultados)} nota(s) fiscal(is)")
                 
-                arquivos_encontrados = resultados['arquivo'].tolist()
-                zip_buffer = criar_zip_resultado(arquivos_encontrados, arquivos)
+                # Normaliza o termo de busca se parecer um CNPJ
+                termo_busca_normalizado = ''.join(filter(str.isdigit, termo_busca))
                 
-                st.markdown("### 📥 Download dos Resultados")
-                st.markdown(
-                    get_download_link(
-                        zip_buffer,
-                        f"notas_fiscais_{termo_busca.replace(' ', '_')}.zip"
-                    ),
-                    unsafe_allow_html=True
+                st.session_state.df_index['conteudo'] = st.session_state.df_index['conteudo'].fillna('')
+                
+                # Busca tanto pelo termo original quanto pelo termo normalizado
+                mascara = st.session_state.df_index['conteudo'].str.lower().str.contains(
+                    f"{termo_busca.lower()}|{termo_busca_normalizado}",
+                    regex=True,
+                    na=False
                 )
                 
-                for idx, row in resultados.iterrows():
-                    with st.expander(f"📄 {row['arquivo']} ({row['tipo']})", expanded=True):
-                        col1, col2 = st.columns([3, 1])
-                        
-                        with col1:
-                            st.write("Trechos relevantes:")
-                            texto = row['conteudo'].lower()
-                            posicao = texto.find(termo_busca.lower())
-                            inicio = max(0, posicao - 100)
-                            fim = min(len(texto), posicao + 100)
-                            contexto = "..." + texto[inicio:fim] + "..."
-                            st.markdown(f"*{contexto}*")
-                        
-                        with col2:
-                            arquivo_original = next(
-                                (arq for arq in arquivos if arq.name == row['arquivo']),
-                                None
-                            )
-                            if arquivo_original:
-                                st.markdown(
-                                    get_individual_download_link(arquivo_original, row['arquivo']),
-                                    unsafe_allow_html=True
+                resultados = st.session_state.df_index[mascara]
+                
+                st.header("📋 Resultados")
+                if len(resultados) == 0:
+                    st.warning(f"Nenhuma nota fiscal encontrada com o produto '{termo_busca}'")
+                else:
+                    st.success(f"Encontrado em {len(resultados)} nota(s) fiscal(is)")
+                    
+                    arquivos_encontrados = resultados['arquivo'].tolist()
+                    zip_buffer = criar_zip_resultado(arquivos_encontrados, arquivos)
+                    
+                    st.markdown("### 📥 Download dos Resultados")
+                    st.markdown(
+                        get_download_link(
+                            zip_buffer,
+                            f"notas_fiscais_{termo_busca.replace(' ', '_')}.zip"
+                        ),
+                        unsafe_allow_html=True
+                    )
+                    
+                    for idx, row in resultados.iterrows():
+                        with st.expander(f"📄 {row['arquivo']} ({row['tipo']})", expanded=True):
+                            col1, col2 = st.columns([3, 1])
+                            
+                            with col1:
+                                st.write("Trechos relevantes:")
+                                texto = row['conteudo'].lower()
+                                posicao = texto.find(termo_busca.lower())
+                                inicio = max(0, posicao - 100)
+                                fim = min(len(texto), posicao + 100)
+                                contexto = "..." + texto[inicio:fim] + "..."
+                                st.markdown(f"*{contexto}*")
+                            
+                            with col2:
+                                arquivo_original = next(
+                                    (arq for arq in arquivos if arq.name == row['arquivo']),
+                                    None
                                 )
-                                
-        except Exception as e:
-            st.error(f"Erro durante a busca: {str(e)}")
-            st.info("Tente reprocessar os arquivos clicando em 'Reprocessar arquivos'")
+                                if arquivo_original:
+                                    st.markdown(
+                                        get_individual_download_link(arquivo_original, row['arquivo']),
+                                        unsafe_allow_html=True
+                                    )
+            
+            except Exception as e:
+                st.error(f"Erro durante a busca: {str(e)}")
+                st.info("Tente reprocessar os arquivos clicando em 'Reprocessar arquivos'")
 
 if __name__ == "__main__":
     main()
-
