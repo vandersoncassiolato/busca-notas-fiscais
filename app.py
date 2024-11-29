@@ -517,15 +517,22 @@ def main():
                 
                 # Normaliza o termo de busca se parecer um CNPJ
                 termo_busca_normalizado = ''.join(filter(str.isdigit, termo_busca))
-                
+
                 st.session_state.df_index['conteudo'] = st.session_state.df_index['conteudo'].fillna('')
-                
-                # Busca tanto pelo termo original quanto pelo termo normalizado
-                mascara = st.session_state.df_index['conteudo'].str.lower().str.contains(
-                    f"{termo_busca.lower()}|{termo_busca_normalizado}",
-                    regex=True,
-                    na=False
-                )
+
+                # Busca modificada para ser mais precisa
+                if termo_busca_normalizado:  # Se parece ser um CNPJ
+                    mascara = st.session_state.df_index['conteudo'].str.lower().str.contains(
+                        f"{termo_busca.lower()}|{termo_busca_normalizado}",
+                        regex=False,
+                        na=False
+                    )
+                else:  # Busca normal por texto
+                    mascara = st.session_state.df_index['conteudo'].str.lower().str.contains(
+                        termo_busca.lower(),
+                        regex=False,
+                        na=False
+                    )
                 
                 resultados = st.session_state.df_index[mascara]
                 
