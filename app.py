@@ -501,8 +501,8 @@ def main():
                 on_change=lambda: st.session_state.update({'search_triggered': True})
             )
         
-    with search_col2:
-        buscar = st.button("Buscar", use_container_width=True)
+        with search_col2:
+            buscar = st.button("Buscar", use_container_width=True)
 
     # Realizar busca (movido para dentro da função main)
     if (termo_busca and st.session_state.get('search_triggered', False)) or buscar:
