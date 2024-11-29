@@ -73,6 +73,14 @@ def toggle_confirmacao():
 def cancelar_reinicio():
     st.session_state.mostrar_confirmacao = False
     
+def normalizar_cnpj(cnpj):
+    """
+    Remove caracteres especiais do CNPJ
+    """
+    if cnpj:
+        return ''.join(filter(str.isdigit, cnpj))
+    return ''
+
 def extrair_texto_xml(conteudo):
     """
     Extrai informações relevantes de arquivos XML de NFe
@@ -100,7 +108,10 @@ def extrair_texto_xml(conteudo):
             if nome_emit is not None:
                 info.append(f"Emitente: {nome_emit.text}")
             if cnpj_emit is not None:
-                info.append(f"CNPJ Emitente: {cnpj_emit.text}")
+                cnpj_formatado = f"{cnpj_emit.text}"  # CNPJ sem formatação
+                cnpj_com_formato = f"{cnpj_emit.text[:2]}.{cnpj_emit.text[2:5]}.{cnpj_emit.text[5:8]}/{cnpj_emit.text[8:12]}-{cnpj_emit.text[12:]}"  # CNPJ formatado
+                info.append(f"CNPJ Emitente: {cnpj_formatado}")
+                info.append(f"CNPJ Emitente Formatado: {cnpj_com_formato}")
         
         # Dados do destinatário
         dest = root.find('.//nfe:dest', ns)
@@ -110,7 +121,10 @@ def extrair_texto_xml(conteudo):
             if nome_dest is not None:
                 info.append(f"Destinatário: {nome_dest.text}")
             if cnpj_dest is not None:
-                info.append(f"CNPJ Destinatário: {cnpj_dest.text}")
+                cnpj_formatado = f"{cnpj_dest.text}"  # CNPJ sem formatação
+                cnpj_com_formato = f"{cnpj_dest.text[:2]}.{cnpj_dest.text[2:5]}.{cnpj_dest.text[5:8]}/{cnpj_dest.text[8:12]}-{cnpj_dest.text[12:]}"  # CNPJ formatado
+                info.append(f"CNPJ Destinatário: {cnpj_formatado}")
+                info.append(f"CNPJ Destinatário Formatado: {cnpj_com_formato}")
         
         # Dados dos produtos
         produtos = root.findall('.//nfe:det', ns)
