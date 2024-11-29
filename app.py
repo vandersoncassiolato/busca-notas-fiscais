@@ -503,25 +503,29 @@ def main():
         
         with search_col2:
             buscar = st.button("Buscar", use_container_width=True)
-        # Realizar busca
-        if (termo_busca and st.session_state.get('search_triggered', False)) or buscar:
-            st.session_state.search_triggered = False  # Reset do trigger
-            try:
-                if 'df_index' not in st.session_state:
-                    st.error("Por favor, faça o upload dos arquivos primeiro.")
-                    return
-                
-                if 'conteudo' not in st.session_state.df_index.columns:
-                    st.error("Erro na estrutura dos dados. Tente reprocessar os arquivos.")
-                    return
-                
-                st.session_state.df_index['conteudo'] = st.session_state.df_index['conteudo'].fillna('')
-                
-                mascara = st.session_state.df_index['conteudo'].str.lower().str.contains(
-                    termo_busca.lower(),
-                    regex=False,
-                    na=False
-                )
+# Realizar busca
+if (termo_busca and st.session_state.get('search_triggered', False)) or buscar:
+    st.session_state.search_triggered = False  # Reset do trigger
+    try:
+        if 'df_index' not in st.session_state:
+            st.error("Por favor, faça o upload dos arquivos primeiro.")
+            return
+        
+        if 'conteudo' not in st.session_state.df_index.columns:
+            st.error("Erro na estrutura dos dados. Tente reprocessar os arquivos.")
+            return
+        
+        # Normaliza o termo de busca se parecer um CNPJ
+        termo_busca_normalizado = ''.join(filter(str.isdigit, termo_busca))
+        
+        st.session_state.df_index['conteudo'] = st.session_state.df_index['conteudo'].fillna('')
+        
+        # Busca tanto pelo termo original quanto pelo termo normalizado
+        mascara = st.session_state.df_index['conteudo'].str.lower().str.contains(
+            f"{termo_busca.lower()}|{termo_busca_normalizado}",
+            regex=True,
+            na=False
+        )
                 
                 resultados = st.session_state.df_index[mascara]
                 
