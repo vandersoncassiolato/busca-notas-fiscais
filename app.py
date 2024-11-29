@@ -527,7 +527,7 @@ if (termo_busca and st.session_state.get('search_triggered', False)) or buscar:
             na=False
         )
                 
-            resultados = st.session_state.df_index[mascara]
+                    resultados = st.session_state.df_index[mascara]
                 
                 st.header("📋 Resultados")
                 if len(resultados) == 0:
