@@ -505,16 +505,16 @@ def main():
             buscar = st.button("Buscar", use_container_width=True)
 
     # Realizar busca (movido para dentro da função main)
-    if (termo_busca and st.session_state.get('search_triggered', False)) or buscar:
-        st.session_state.search_triggered = False  # Reset do trigger
-        try:
-            if 'df_index' not in st.session_state:
-                st.error("Por favor, faça o upload dos arquivos primeiro.")
-                return
+        if (termo_busca and st.session_state.get('search_triggered', False)) or buscar:
+            st.session_state.search_triggered = False  # Reset do trigger
+            try:
+                if 'df_index' not in st.session_state:
+                    st.error("Por favor, faça o upload dos arquivos primeiro.")
+                    return
             
-            if 'conteudo' not in st.session_state.df_index.columns:
-                st.error("Erro na estrutura dos dados. Tente reprocessar os arquivos.")
-                return
+                if 'conteudo' not in st.session_state.df_index.columns:
+                    st.error("Erro na estrutura dos dados. Tente reprocessar os arquivos.")
+                    return
             
             # Normaliza o termo de busca se parecer um CNPJ
             termo_busca_normalizado = ''.join(filter(str.isdigit, termo_busca))
