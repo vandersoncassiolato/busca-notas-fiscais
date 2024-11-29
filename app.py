@@ -520,11 +520,13 @@ def main():
 
                 st.session_state.df_index['conteudo'] = st.session_state.df_index['conteudo'].fillna('')
 
-                # Busca modificada para ser mais precisa
-                if termo_busca_normalizado:  # Se parece ser um CNPJ
+                # Busca modificada para diferentes tipos de conteúdo
+                if termo_busca_normalizado and len(termo_busca_normalizado) > 6:  # Se parece ser um CNPJ ou NCM
+                    # Busca com regex para CNPJ (formatado ou não) e NCM
+                    padrao_busca = f"({termo_busca}|{termo_busca_normalizado})"
                     mascara = st.session_state.df_index['conteudo'].str.lower().str.contains(
-                        f"{termo_busca.lower()}|{termo_busca_normalizado}",
-                        regex=False,
+                        padrao_busca,
+                        regex=True,
                         na=False
                     )
                 else:  # Busca normal por texto
