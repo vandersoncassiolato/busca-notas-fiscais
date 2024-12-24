@@ -15,8 +15,6 @@ import streamlit.components.v1 as components
 
 # Novos imports para a conversão XML para PDF
 from xhtml2pdf import pisa
-import xml.dom.ext.reader.Sax
-from xml.dom.ext import PrettyPrint
 from io import StringIO, BytesIO
 
 # Configuração da página
@@ -90,29 +88,58 @@ def get_theme_colors():
 # Nova função para conversão de XML para PDF
 def xml_para_pdf(xml_content):
     """
-    Converte conteúdo XML para PDF
+    Converte conteúdo XML para PDF usando ElementTree ao invés de Sax
     """
     try:
-        # Cria um buffer para o HTML intermediário
-        html_buffer = StringIO()
+        # Parse o XML
+        root = ET.fromstring(xml_content)
         
-        # Converte XML para HTML formatado
-        doc = xml.dom.ext.reader.Sax.FromXml(StringIO(xml_content))
-        PrettyPrint(doc, stream=html_buffer)
-        html_content = html_buffer.getvalue()
+        # Função recursiva para formatar o XML
+        def format_xml(element, level=0):
+            indent = '  ' * level
+            result = []
+            # Adiciona a tag de abertura com atributos
+            attrs = [f'{k}="{v}"' for k, v in element.attrib.items()]
+            tag_with_attrs = element.tag + (' ' + ' '.join(attrs) if attrs else '')
+            
+            if len(element) == 0 and not element.text:
+                result.append(f"{indent}<{tag_with_attrs}/>")
+            else:
+                result.append(f"{indent}<{tag_with_attrs}>")
+                # Adiciona o texto se existir
+                if element.text and element.text.strip():
+                    result.append(f"{indent}  {element.text.strip()}")
+                # Processa os elementos filhos
+                for child in element:
+                    result.extend(format_xml(child, level + 1))
+                result.append(f"{indent}</{element.tag}>")
+            return result
+
+        # Gera o HTML formatado
+        formatted_xml = '\n'.join(format_xml(root))
         
-        # Adiciona estilo CSS básico para melhor formatação
+        # Adiciona estilo CSS para melhor formatação
         styled_html = f"""
         <html>
             <head>
                 <style>
-                    body {{ font-family: Arial, sans-serif; }}
-                    .xml-tag {{ color: #0066cc; }}
-                    .xml-content {{ margin-left: 20px; }}
+                    body {{
+                        font-family: Arial, sans-serif;
+                        margin: 20px;
+                        line-height: 1.6;
+                    }}
+                    pre {{
+                        background-color: #f8f9fa;
+                        border: 1px solid #e9ecef;
+                        border-radius: 4px;
+                        padding: 15px;
+                        white-space: pre-wrap;
+                        word-wrap: break-word;
+                    }}
                 </style>
             </head>
             <body>
-                <pre>{html_content}</pre>
+                <pre>{formatted_xml}</pre>
             </body>
         </html>
         """
