@@ -12,7 +12,8 @@ from pathlib import Path
 import zipfile
 import base64
 import streamlit.components.v1 as components
-from nfe.danfe.danfe import danfe
+from pynfe.processamento.danfe import danfe
+from pynfe.processamento.xml import XML
 
 # Configuração da página
 st.set_page_config(
@@ -80,33 +81,27 @@ def get_theme_colors():
 
 def xml_para_danfe(xml_content):
     """
-    Converte XML de NFe para DANFE usando python-nfe
+    Converte XML de NFe para DANFE usando PyNFe
     """
     try:
         # Cria arquivos temporários para o XML e PDF
-        with tempfile.NamedTemporaryFile(suffix='.xml', delete=False) as xml_temp, \
-             tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as pdf_temp:
-            
+        with tempfile.NamedTemporaryFile(suffix='.xml', delete=False) as xml_temp:
             # Salva o XML em um arquivo temporário
             xml_temp.write(xml_content.encode('utf-8'))
             xml_temp.flush()
             
+            # Processa o XML
+            nfe = XML(xml_temp.name)
+            
             # Cria o DANFE
-            oDanfe = danfe(xml_temp.name, pdf_temp.name)
+            pdf_buffer = io.BytesIO()
+            danfe_nfe = danfe(nfe.nfe, template=False)
+            danfe_nfe.gerar_pdf(pdf_buffer)
             
-            # Gera o PDF
-            oDanfe.gerar_danfe()
-            
-            # Lê o PDF gerado
-            with open(pdf_temp.name, 'rb') as pdf_file:
-                pdf_content = pdf_file.read()
-            
-            # Limpa os arquivos temporários
+            # Limpa o arquivo temporário
             os.unlink(xml_temp.name)
-            os.unlink(pdf_temp.name)
             
-            # Retorna o conteúdo do PDF em um buffer
-            pdf_buffer = io.BytesIO(pdf_content)
+            # Retorna o buffer do PDF
             pdf_buffer.seek(0)
             return pdf_buffer
             
