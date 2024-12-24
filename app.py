@@ -12,7 +12,6 @@ from pathlib import Path
 import zipfile
 import base64
 import streamlit.components.v1 as components
-from nfe.danfe.danfce import danfce
 from nfe.danfe.danfe import danfe
 
 # Configuração da página
@@ -81,7 +80,7 @@ def get_theme_colors():
 
 def xml_para_danfe(xml_content):
     """
-    Converte XML de NFe para DANFE usando unidanfe
+    Converte XML de NFe para DANFE usando python-nfe
     """
     try:
         # Cria arquivos temporários para o XML e PDF
@@ -92,9 +91,11 @@ def xml_para_danfe(xml_content):
             xml_temp.write(xml_content.encode('utf-8'))
             xml_temp.flush()
             
-            # Gera o DANFE
-            danfe = UniDanfe()
-            danfe.gerar_danfe(xml_temp.name, pdf_temp.name)
+            # Cria o DANFE
+            oDanfe = danfe(xml_temp.name, pdf_temp.name)
+            
+            # Gera o PDF
+            oDanfe.gerar_danfe()
             
             # Lê o PDF gerado
             with open(pdf_temp.name, 'rb') as pdf_file:
@@ -106,6 +107,7 @@ def xml_para_danfe(xml_content):
             
             # Retorna o conteúdo do PDF em um buffer
             pdf_buffer = io.BytesIO(pdf_content)
+            pdf_buffer.seek(0)
             return pdf_buffer
             
     except Exception as e:
