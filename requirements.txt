@@ -5,3 +5,4 @@ pdf2image
 pandas
 Pillow
 requests
+xhtml2pdf
