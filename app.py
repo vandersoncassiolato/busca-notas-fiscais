@@ -12,10 +12,9 @@ from pathlib import Path
 import zipfile
 import base64
 import streamlit.components.v1 as components
-
-# Novos imports para a conversão XML para PDF
-from xhtml2pdf import pisa
-from io import StringIO, BytesIO
+from pynfe.processamento.danfe import danfe
+from pynfe.processamento.xml import XML
+from geraldo.generators import PDFGenerator
 
 # Configuração da página
 st.set_page_config(
@@ -30,7 +29,6 @@ if 'key' not in st.session_state:
 if 'mostrar_confirmacao' not in st.session_state:
     st.session_state.mostrar_confirmacao = False
 
-# Função de utilidade para normalizar CNPJ
 def normalizar_cnpj(cnpj):
     """
     Remove caracteres especiais do CNPJ
@@ -39,7 +37,6 @@ def normalizar_cnpj(cnpj):
         return ''.join(filter(str.isdigit, cnpj))
     return ''
 
-# Funções de controle do sistema
 def reiniciar_sistema():
     """
     Reinicia o sistema limpando a sessão
@@ -61,7 +58,6 @@ def get_theme_colors():
     Retorna as cores baseadas no tema atual do Streamlit
     """
     try:
-        # Tenta pegar o tema atual de forma mais segura
         if st._config.get_option("theme.base") == "dark":
             return {
                 'button_bg': '#2E2E2E',
@@ -77,7 +73,6 @@ def get_theme_colors():
                 'button_hover': '#F8F9FA',
             }
     except:
-        # Fallback para cores claras em caso de erro
         return {
             'button_bg': '#FFFFFF',
             'button_text': '#000000',
@@ -85,76 +80,27 @@ def get_theme_colors():
             'button_hover': '#F8F9FA',
         }
 
-# Nova função para conversão de XML para PDF
-def xml_para_pdf(xml_content):
+def xml_para_danfe(xml_content):
     """
-    Converte conteúdo XML para PDF usando ElementTree ao invés de Sax
+    Converte XML de NFe para DANFE em PDF
     """
     try:
-        # Parse o XML
-        root = ET.fromstring(xml_content)
+        # Cria um arquivo temporário com o conteúdo XML
+        xml_buffer = io.BytesIO(xml_content.encode('utf-8'))
         
-        # Função recursiva para formatar o XML
-        def format_xml(element, level=0):
-            indent = '  ' * level
-            result = []
-            # Adiciona a tag de abertura com atributos
-            attrs = [f'{k}="{v}"' for k, v in element.attrib.items()]
-            tag_with_attrs = element.tag + (' ' + ' '.join(attrs) if attrs else '')
-            
-            if len(element) == 0 and not element.text:
-                result.append(f"{indent}<{tag_with_attrs}/>")
-            else:
-                result.append(f"{indent}<{tag_with_attrs}>")
-                # Adiciona o texto se existir
-                if element.text and element.text.strip():
-                    result.append(f"{indent}  {element.text.strip()}")
-                # Processa os elementos filhos
-                for child in element:
-                    result.extend(format_xml(child, level + 1))
-                result.append(f"{indent}</{element.tag}>")
-            return result
-
-        # Gera o HTML formatado
-        formatted_xml = '\n'.join(format_xml(root))
+        # Processa o XML
+        nfe = XML(xml_buffer, 'nfe')
         
-        # Adiciona estilo CSS para melhor formatação
-        styled_html = f"""
-        <html>
-            <head>
-                <style>
-                    body {{
-                        font-family: Arial, sans-serif;
-                        margin: 20px;
-                        line-height: 1.6;
-                    }}
-                    pre {{
-                        background-color: #f8f9fa;
-                        border: 1px solid #e9ecef;
-                        border-radius: 4px;
-                        padding: 15px;
-                        white-space: pre-wrap;
-                        word-wrap: break-word;
-                    }}
-                </style>
-            </head>
-            <body>
-                <pre>{formatted_xml}</pre>
-            </body>
-        </html>
-        """
+        # Gera o DANFE
+        danfe_pdf = danfe.Danfe(nfe.NFe)
+        pdf_buffer = io.BytesIO()
+        danfe_pdf.generate_by(PDFGenerator, filename=pdf_buffer)
         
-        # Cria um buffer para o PDF
-        pdf_buffer = BytesIO()
-        
-        # Converte HTML para PDF
-        pisa.CreatePDF(styled_html, dest=pdf_buffer)
-        
-        # Retorna o buffer do PDF
         pdf_buffer.seek(0)
         return pdf_buffer
+        
     except Exception as e:
-        st.error(f"Erro ao converter XML para PDF: {str(e)}")
+        st.error(f"Erro ao converter XML para DANFE: {str(e)}")
         return None
 
 def extrair_texto_xml(conteudo):
@@ -266,7 +212,7 @@ def extrair_texto_pdf(arquivo):
 
 def criar_zip_resultado(arquivos_encontrados, todos_arquivos):
     """
-    Cria um arquivo ZIP com os arquivos encontrados na busca e suas versões em PDF
+    Cria um arquivo ZIP com os arquivos encontrados na busca e suas versões em DANFE
     """
     zip_buffer = io.BytesIO()
     
@@ -281,11 +227,12 @@ def criar_zip_resultado(arquivos_encontrados, todos_arquivos):
                 arquivo_original.seek(0)
                 zip_file.writestr(arquivo_original.name, arquivo_original.getvalue())
                 
-                # Adiciona versão PDF para arquivos XML
+                # Adiciona versão DANFE para arquivos XML
                 if arquivo_nome.lower().endswith('.xml'):
-                    pdf_buffer = xml_para_pdf(arquivo_original.getvalue().decode())
+                    arquivo_original.seek(0)
+                    pdf_buffer = xml_para_danfe(arquivo_original.getvalue().decode())
                     if pdf_buffer:
-                        pdf_nome = arquivo_nome.rsplit('.', 1)[0] + '.pdf'
+                        pdf_nome = arquivo_nome.rsplit('.', 1)[0] + '_danfe.pdf'
                         zip_file.writestr(pdf_nome, pdf_buffer.getvalue())
     
     zip_buffer.seek(0)
@@ -300,7 +247,7 @@ def get_download_link(buffer, filename):
 
 def get_individual_download_link(arquivo, nome_arquivo):
     """
-    Cria links de download para o arquivo original e versão PDF (se for XML)
+    Cria links de download para o arquivo original e versão DANFE (se for XML)
     """
     try:
         arquivo.seek(0)
@@ -309,13 +256,14 @@ def get_individual_download_link(arquivo, nome_arquivo):
         
         links = [f'<a href="data:{mime_type};base64,{b64}" download="{nome_arquivo}" class="download-button-small">⬇️ Baixar arquivo</a>']
         
-        # Adiciona botão de PDF para arquivos XML
+        # Adiciona botão de DANFE para arquivos XML
         if nome_arquivo.lower().endswith('.xml'):
-            pdf_buffer = xml_para_pdf(arquivo.getvalue().decode())
+            arquivo.seek(0)
+            pdf_buffer = xml_para_danfe(arquivo.getvalue().decode())
             if pdf_buffer:
                 pdf_b64 = base64.b64encode(pdf_buffer.getvalue()).decode()
-                pdf_nome = nome_arquivo.rsplit('.', 1)[0] + '.pdf'
-                links.append(f'<a href="data:application/pdf;base64,{pdf_b64}" download="{pdf_nome}" class="download-button-small">📄 Baixar PDF</a>')
+                pdf_nome = nome_arquivo.rsplit('.', 1)[0] + '_danfe.pdf'
+                links.append(f'<a href="data:application/pdf;base64,{pdf_b64}" download="{pdf_nome}" class="download-button-small">📄 Baixar DANFE</a>')
         
         return ' '.join(links)
     except Exception as e:
@@ -330,21 +278,18 @@ def processar_arquivos(arquivos_uploaded, progress_bar, status_text):
     
     for i, arquivo in enumerate(arquivos_uploaded):
         try:
-            # Atualiza a barra de progresso
             progress_bar.progress((i + 1) / total_arquivos)
             status_text.text(f'Processando: {arquivo.name} ({i + 1} de {total_arquivos})')
             
-            # Determina o tipo do arquivo
             tipo = 'PDF' if arquivo.name.lower().endswith('.pdf') else 'XML'
             
-            # Processa o arquivo de acordo com seu tipo
-            arquivo.seek(0)  # Reset do ponteiro do arquivo
+            arquivo.seek(0)
             if tipo == 'PDF':
                 texto = extrair_texto_pdf(arquivo)
             else:
                 texto = extrair_texto_xml(arquivo.getvalue())
             
-            if texto:  # Só adiciona se extraiu algum texto
+            if texto:
                 index.append({
                     'arquivo': arquivo.name,
                     'tipo': tipo,
@@ -366,6 +311,7 @@ def processar_arquivos(arquivos_uploaded, progress_bar, status_text):
 def main():
     st.title("Hiper Materiais - 🔍 Busca em Notas Fiscais")
 
+    # CSS Geral
     st.markdown("""
         <style>
         /* Reduz o espaço superior */
@@ -431,15 +377,15 @@ def main():
             3. Clique em 'Buscar'
             4. Use os botões de download conforme necessário:
                - Download individual de cada nota
-               - Download em PDF dos arquivos XML
+               - Download em DANFE dos arquivos XML
                - Download em ZIP de todas as notas encontradas
             
             **Tipos de arquivo suportados:**
             - PDFs (digitais ou escaneados)
             - XMLs de Nota Fiscal Eletrônica (NFe)
             """)
-    
-    # CSS global
+
+# CSS global
     colors = get_theme_colors()
     st.markdown(f"""
         <style>
@@ -497,7 +443,7 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
-# Botões de reiniciar
+    # Botões de reiniciar
     col1, col2 = st.columns([1, 5])
     with col1:
         st.button("🔄 Reiniciar", on_click=toggle_confirmacao)
@@ -514,8 +460,8 @@ def main():
                 st.button("Cancelar", on_click=cancelar_reinicio)
 
     st.header("📁 Selecione os arquivos ou pasta")
-    
-    arquivos = st.file_uploader(
+
+arquivos = st.file_uploader(
         "Arraste uma pasta ou selecione os arquivos",
         type=['pdf', 'xml'],
         accept_multiple_files=True,
@@ -551,8 +497,8 @@ def main():
                     nome = os.path.basename(arquivo)
                     tipo = 'PDF' if nome.lower().endswith('.pdf') else 'XML'
                     st.write(f"{'   ' if pasta else ''}• {nome} ({tipo})")
-
-# Processamento dos arquivos
+        
+        # Processamento dos arquivos
         if 'df_index' not in st.session_state or st.button("🔄 Reprocessar arquivos"):
             progress_bar = st.progress(0)
             status_text = st.empty()
@@ -564,8 +510,8 @@ def main():
             status_text.empty()
             
             st.success('✅ Processamento concluído!')
-        
-        # Interface de busca
+
+# Interface de busca
         st.header("🔎 Buscar Produtos")
         
         # CSS para alinhamento do botão
@@ -621,7 +567,6 @@ def main():
 
                 # Busca modificada para diferentes tipos de conteúdo
                 if termo_busca_normalizado and len(termo_busca_normalizado) > 6:  # Se parece ser um CNPJ ou NCM
-                    # Busca com regex para CNPJ (formatado ou não) e NCM
                     padrao_busca = f"({termo_busca}|{termo_busca_normalizado})"
                     mascara = st.session_state.df_index['conteudo'].str.lower().str.contains(
                         padrao_busca,
@@ -685,3 +630,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
