@@ -80,18 +80,19 @@ def get_theme_colors():
             'button_hover': '#F8F9FA',
         }
 
+from pydfe import NFeProcessor
+
 def xml_para_danfe(xml_content):
     """
-    Converte XML de NFe para DANFE em PDF usando python-nfelib
+    Converte XML de NFe para DANFE em PDF usando py-dfe
     """
     try:
-        # Parse o XML
-        nfe = parser.parse(xml_content)
+        # Cria o processador
+        nfe_processor = NFeProcessor()
         
         # Gera o DANFE
-        danfe = nfe_sub.DANFe(nfe)
         pdf_buffer = io.BytesIO()
-        danfe.gerar_pdf(pdf_buffer)
+        nfe_processor.danfe_from_xml(xml_content, pdf_buffer)
         
         pdf_buffer.seek(0)
         return pdf_buffer
