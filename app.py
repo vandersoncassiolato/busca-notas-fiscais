@@ -1,4 +1,3 @@
-# Parte 1: Imports e configurações iniciais
 import streamlit as st
 import pandas as pd
 from PyPDF2 import PdfReader
@@ -13,6 +12,12 @@ from pathlib import Path
 import zipfile
 import base64
 import streamlit.components.v1 as components
+
+# Novos imports para a conversão XML para PDF
+from xhtml2pdf import pisa
+import xml.dom.ext.reader.Sax
+from xml.dom.ext import PrettyPrint
+from io import StringIO, BytesIO
 
 # Configuração da página
 st.set_page_config(
@@ -81,6 +86,50 @@ def get_theme_colors():
             'button_border': '#DDDDDD',
             'button_hover': '#F8F9FA',
         }
+
+# Nova função para conversão de XML para PDF
+def xml_para_pdf(xml_content):
+    """
+    Converte conteúdo XML para PDF
+    """
+    try:
+        # Cria um buffer para o HTML intermediário
+        html_buffer = StringIO()
+        
+        # Converte XML para HTML formatado
+        doc = xml.dom.ext.reader.Sax.FromXml(StringIO(xml_content))
+        PrettyPrint(doc, stream=html_buffer)
+        html_content = html_buffer.getvalue()
+        
+        # Adiciona estilo CSS básico para melhor formatação
+        styled_html = f"""
+        <html>
+            <head>
+                <style>
+                    body {{ font-family: Arial, sans-serif; }}
+                    .xml-tag {{ color: #0066cc; }}
+                    .xml-content {{ margin-left: 20px; }}
+                </style>
+            </head>
+            <body>
+                <pre>{html_content}</pre>
+            </body>
+        </html>
+        """
+        
+        # Cria um buffer para o PDF
+        pdf_buffer = BytesIO()
+        
+        # Converte HTML para PDF
+        pisa.CreatePDF(styled_html, dest=pdf_buffer)
+        
+        # Retorna o buffer do PDF
+        pdf_buffer.seek(0)
+        return pdf_buffer
+    except Exception as e:
+        st.error(f"Erro ao converter XML para PDF: {str(e)}")
+        return None
+
 def extrair_texto_xml(conteudo):
     """
     Extrai informações relevantes de arquivos XML de NFe
@@ -187,9 +236,10 @@ def extrair_texto_pdf(arquivo):
     except Exception as e:
         st.error(f"Erro ao processar PDF: {str(e)}")
         return ""
+
 def criar_zip_resultado(arquivos_encontrados, todos_arquivos):
     """
-    Cria um arquivo ZIP com os arquivos encontrados na busca
+    Cria um arquivo ZIP com os arquivos encontrados na busca e suas versões em PDF
     """
     zip_buffer = io.BytesIO()
     
@@ -203,6 +253,13 @@ def criar_zip_resultado(arquivos_encontrados, todos_arquivos):
             if arquivo_original:
                 arquivo_original.seek(0)
                 zip_file.writestr(arquivo_original.name, arquivo_original.getvalue())
+                
+                # Adiciona versão PDF para arquivos XML
+                if arquivo_nome.lower().endswith('.xml'):
+                    pdf_buffer = xml_para_pdf(arquivo_original.getvalue().decode())
+                    if pdf_buffer:
+                        pdf_nome = arquivo_nome.rsplit('.', 1)[0] + '.pdf'
+                        zip_file.writestr(pdf_nome, pdf_buffer.getvalue())
     
     zip_buffer.seek(0)
     return zip_buffer
@@ -216,13 +273,24 @@ def get_download_link(buffer, filename):
 
 def get_individual_download_link(arquivo, nome_arquivo):
     """
-    Cria um link de download para um único arquivo
+    Cria links de download para o arquivo original e versão PDF (se for XML)
     """
     try:
         arquivo.seek(0)
         b64 = base64.b64encode(arquivo.getvalue()).decode()
         mime_type = 'application/pdf' if nome_arquivo.lower().endswith('.pdf') else 'application/xml'
-        return f'<a href="data:{mime_type};base64,{b64}" download="{nome_arquivo}" class="download-button-small">⬇️ Baixar arquivo</a>'
+        
+        links = [f'<a href="data:{mime_type};base64,{b64}" download="{nome_arquivo}" class="download-button-small">⬇️ Baixar arquivo</a>']
+        
+        # Adiciona botão de PDF para arquivos XML
+        if nome_arquivo.lower().endswith('.xml'):
+            pdf_buffer = xml_para_pdf(arquivo.getvalue().decode())
+            if pdf_buffer:
+                pdf_b64 = base64.b64encode(pdf_buffer.getvalue()).decode()
+                pdf_nome = nome_arquivo.rsplit('.', 1)[0] + '.pdf'
+                links.append(f'<a href="data:application/pdf;base64,{pdf_b64}" download="{pdf_nome}" class="download-button-small">📄 Baixar PDF</a>')
+        
+        return ' '.join(links)
     except Exception as e:
         return f"Erro ao gerar link: {str(e)}"
 
@@ -267,6 +335,7 @@ def processar_arquivos(arquivos_uploaded, progress_bar, status_text):
         return pd.DataFrame(columns=['arquivo', 'tipo', 'conteudo'])
     
     return pd.DataFrame(index)
+
 def main():
     st.title("Hiper Materiais - 🔍 Busca em Notas Fiscais")
 
@@ -335,6 +404,7 @@ def main():
             3. Clique em 'Buscar'
             4. Use os botões de download conforme necessário:
                - Download individual de cada nota
+               - Download em PDF dos arquivos XML
                - Download em ZIP de todas as notas encontradas
             
             **Tipos de arquivo suportados:**
@@ -399,7 +469,8 @@ def main():
         }}
         </style>
     """, unsafe_allow_html=True)
-    # Botões de reiniciar
+
+# Botões de reiniciar
     col1, col2 = st.columns([1, 5])
     with col1:
         st.button("🔄 Reiniciar", on_click=toggle_confirmacao)
@@ -453,8 +524,8 @@ def main():
                     nome = os.path.basename(arquivo)
                     tipo = 'PDF' if nome.lower().endswith('.pdf') else 'XML'
                     st.write(f"{'   ' if pasta else ''}• {nome} ({tipo})")
-        
-        # Processamento dos arquivos
+
+# Processamento dos arquivos
         if 'df_index' not in st.session_state or st.button("🔄 Reprocessar arquivos"):
             progress_bar = st.progress(0)
             status_text = st.empty()
@@ -466,6 +537,7 @@ def main():
             status_text.empty()
             
             st.success('✅ Processamento concluído!')
+        
         # Interface de busca
         st.header("🔎 Buscar Produtos")
         
