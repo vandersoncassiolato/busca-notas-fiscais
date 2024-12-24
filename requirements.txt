@@ -1,13 +1,7 @@
 streamlit
+pandas
 PyPDF2
 pytesseract
-pdf2image
-pandas
 Pillow
-requests
-xhtml2pdf
-python-nfelib
-pynfe==0.4.4
-geraldo==0.4.17
-reportlab==3.6.12
-py-dfe
+pdf2image
+reportlab
