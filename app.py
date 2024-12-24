@@ -12,7 +12,8 @@ from pathlib import Path
 import zipfile
 import base64
 import streamlit.components.v1 as components
-from unidanfe import UniDanfe
+from nfe.danfe.danfce import danfce
+from nfe.danfe.danfe import danfe
 
 # Configuração da página
 st.set_page_config(
