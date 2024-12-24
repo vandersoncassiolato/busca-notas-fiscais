@@ -12,8 +12,6 @@ from pathlib import Path
 import zipfile
 import base64
 import streamlit.components.v1 as components
-from nfelib.v4_00 import nfe_sub
-from nfelib.v4_00 import leiauteNFe_sub as parser
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
@@ -83,8 +81,6 @@ def get_theme_colors():
             'button_border': '#DDDDDD',
             'button_hover': '#F8F9FA',
         }
-
-from pydfe import NFeProcessor
 
 def xml_para_danfe(xml_content):
     """
@@ -580,7 +576,7 @@ def main():
 
     st.header("📁 Selecione os arquivos ou pasta")
 
-arquivos = st.file_uploader(
+    arquivos = st.file_uploader(
         "Arraste uma pasta ou selecione os arquivos",
         type=['pdf', 'xml'],
         accept_multiple_files=True,
