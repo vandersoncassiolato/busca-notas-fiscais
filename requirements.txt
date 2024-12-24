@@ -4,6 +4,6 @@ PyPDF2
 pytesseract
 Pillow
 pdf2image
-python-nfe
+python-nfe==4.0.0
 lxml
 signxml
