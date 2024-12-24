@@ -4,4 +4,5 @@ PyPDF2
 pytesseract
 Pillow
 pdf2image
-reportlab
+unidanfe
+lxml
