@@ -12,9 +12,9 @@ from pathlib import Path
 import zipfile
 import base64
 import streamlit.components.v1 as components
-from pynfe.processamento.danfe import danfe
-from pynfe.processamento.xml import XML
-from geraldo.generators import PDFGenerator
+from nfelib.v4_00 import nfe_sub
+from nfelib.v4_00 import leiauteNFe_sub as parser
+
 
 # Configuração da página
 st.set_page_config(
@@ -82,19 +82,16 @@ def get_theme_colors():
 
 def xml_para_danfe(xml_content):
     """
-    Converte XML de NFe para DANFE em PDF
+    Converte XML de NFe para DANFE em PDF usando python-nfelib
     """
     try:
-        # Cria um arquivo temporário com o conteúdo XML
-        xml_buffer = io.BytesIO(xml_content.encode('utf-8'))
-        
-        # Processa o XML
-        nfe = XML(xml_buffer, 'nfe')
+        # Parse o XML
+        nfe = parser.parse(xml_content)
         
         # Gera o DANFE
-        danfe_pdf = danfe.Danfe(nfe.NFe)
+        danfe = nfe_sub.DANFe(nfe)
         pdf_buffer = io.BytesIO()
-        danfe_pdf.generate_by(PDFGenerator, filename=pdf_buffer)
+        danfe.gerar_pdf(pdf_buffer)
         
         pdf_buffer.seek(0)
         return pdf_buffer
