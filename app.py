@@ -12,11 +12,7 @@ from pathlib import Path
 import zipfile
 import base64
 import streamlit.components.v1 as components
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-
+from unidanfe import UniDanfe
 
 # Configuração da página
 st.set_page_config(
@@ -84,138 +80,35 @@ def get_theme_colors():
 
 def xml_para_danfe(xml_content):
     """
-    Cria um PDF formatado com os dados do XML da NFe
+    Converte XML de NFe para DANFE usando unidanfe
     """
     try:
-        # Parse o XML
-        root = ET.fromstring(xml_content)
-        ns = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
-        
-        # Buffer para o PDF
-        pdf_buffer = io.BytesIO()
-        
-        # Configuração do documento PDF
-        doc = SimpleDocTemplate(
-            pdf_buffer,
-            pagesize=letter,
-            rightMargin=72,
-            leftMargin=72,
-            topMargin=72,
-            bottomMargin=72
-        )
-        
-        # Lista para armazenar os elementos do PDF
-        elements = []
-        
-        # Estilos
-        styles = getSampleStyleSheet()
-        title_style = styles['Heading1']
-        normal_style = styles['Normal']
-        
-        # Cabeçalho
-        elements.append(Paragraph("NOTA FISCAL ELETRÔNICA", title_style))
-        elements.append(Paragraph("<br/><br/>", normal_style))
-        
-        # Dados do emitente
-        emit = root.find('.//nfe:emit', ns)
-        if emit is not None:
-            nome_emit = emit.find('nfe:xNome', ns)
-            cnpj_emit = emit.find('nfe:CNPJ', ns)
-            emit_data = [
-                ['DADOS DO EMITENTE', ''],
-                ['Nome/Razão Social', nome_emit.text if nome_emit is not None else ''],
-                ['CNPJ', cnpj_emit.text if cnpj_emit is not None else '']
-            ]
-            emit_table = Table(emit_data, colWidths=[200, 300])
-            emit_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 14),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-                ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -1), 12),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black)
-            ]))
-            elements.append(emit_table)
-            elements.append(Paragraph("<br/><br/>", normal_style))
-        
-        # Dados do destinatário
-        dest = root.find('.//nfe:dest', ns)
-        if dest is not None:
-            nome_dest = dest.find('nfe:xNome', ns)
-            cnpj_dest = dest.find('nfe:CNPJ', ns)
-            dest_data = [
-                ['DADOS DO DESTINATÁRIO', ''],
-                ['Nome/Razão Social', nome_dest.text if nome_dest is not None else ''],
-                ['CNPJ', cnpj_dest.text if cnpj_dest is not None else '']
-            ]
-            dest_table = Table(dest_data, colWidths=[200, 300])
-            dest_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 14),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-                ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -1), 12),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black)
-            ]))
-            elements.append(dest_table)
-            elements.append(Paragraph("<br/><br/>", normal_style))
-        
-        # Produtos
-        produtos = root.findall('.//nfe:det', ns)
-        if produtos:
-            prod_data = [['PRODUTOS', '', '', '', '']]
-            prod_data.append(['Código', 'Descrição', 'Qtd', 'Valor Unit.', 'Valor Total'])
+        # Cria arquivos temporários para o XML e PDF
+        with tempfile.NamedTemporaryFile(suffix='.xml', delete=False) as xml_temp, \
+             tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as pdf_temp:
             
-            for prod in produtos:
-                prod_info = prod.find('nfe:prod', ns)
-                if prod_info is not None:
-                    codigo = prod_info.find('nfe:cProd', ns)
-                    descricao = prod_info.find('nfe:xProd', ns)
-                    qtd = prod_info.find('nfe:qCom', ns)
-                    val_unit = prod_info.find('nfe:vUnCom', ns)
-                    val_total = prod_info.find('nfe:vProd', ns)
-                    
-                    prod_data.append([
-                        codigo.text if codigo is not None else '',
-                        descricao.text if descricao is not None else '',
-                        qtd.text if qtd is not None else '',
-                        val_unit.text if val_unit is not None else '',
-                        val_total.text if val_total is not None else ''
-                    ])
+            # Salva o XML em um arquivo temporário
+            xml_temp.write(xml_content.encode('utf-8'))
+            xml_temp.flush()
             
-            prod_table = Table(prod_data, colWidths=[80, 220, 70, 70, 70])
-            prod_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 14),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-                ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -1), 12),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black)
-            ]))
-            elements.append(prod_table)
+            # Gera o DANFE
+            danfe = UniDanfe()
+            danfe.gerar_danfe(xml_temp.name, pdf_temp.name)
             
-        # Gera o PDF
-        doc.build(elements)
-        pdf_buffer.seek(0)
-        return pdf_buffer
-        
+            # Lê o PDF gerado
+            with open(pdf_temp.name, 'rb') as pdf_file:
+                pdf_content = pdf_file.read()
+            
+            # Limpa os arquivos temporários
+            os.unlink(xml_temp.name)
+            os.unlink(pdf_temp.name)
+            
+            # Retorna o conteúdo do PDF em um buffer
+            pdf_buffer = io.BytesIO(pdf_content)
+            return pdf_buffer
+            
     except Exception as e:
-        st.error(f"Erro ao converter XML para PDF: {str(e)}")
+        st.error(f"Erro ao converter XML para DANFE: {str(e)}")
         return None
 
 def extrair_texto_xml(conteudo):
