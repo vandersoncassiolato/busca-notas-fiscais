@@ -6,6 +6,4 @@ pandas
 Pillow
 requests
 xhtml2pdf
-pynfe==0.4.4
-geraldo==0.4.17
-reportlab==3.6.12
+python-nfelib
